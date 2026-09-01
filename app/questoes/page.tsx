@@ -95,7 +95,7 @@ export default function QuestoesPage() {
   };
 
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       <AppNav
         title="Banco de questões"
         action={

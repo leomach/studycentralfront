@@ -37,7 +37,7 @@ export default function CadastroPage() {
   };
 
   return (
-    <Canvas tone="forest" className="min-h-dvh text-cream">
+    <Canvas tone="forest" className="text-cream">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-[var(--canvas-pad)] pt-12 text-center">
         <Face mood="wow" tone="cream" size={80} />
         <h1 className="m-0 whitespace-pre-line font-poster text-[44px] uppercase leading-[0.9] tracking-[-0.04em]">

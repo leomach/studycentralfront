@@ -24,7 +24,7 @@ export default function QuestaoDetalhePage({
 
   if (isLoading) {
     return (
-      <Canvas tone="cream" className="min-h-dvh">
+      <Canvas tone="cream">
         {nav}
         <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-60">Carregando…</p>
       </Canvas>
@@ -33,7 +33,7 @@ export default function QuestaoDetalhePage({
 
   if (!q) {
     return (
-      <Canvas tone="cream" className="min-h-dvh">
+      <Canvas tone="cream">
         {nav}
         <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-60">Questão não encontrada.</p>
       </Canvas>
@@ -59,7 +59,7 @@ export default function QuestaoDetalhePage({
       : q.alternatives.map((a) => ({ value: a.key, text: a.text }));
 
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       {nav}
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
         <p className="font-mono text-[13px] opacity-60">{meta}</p>

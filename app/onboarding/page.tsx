@@ -55,7 +55,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <Canvas tone={slide.tone} className="min-h-dvh">
+    <Canvas tone={slide.tone}>
       <AppNav
         action={
           <Button variant="light" size="sm" onClick={sair}>

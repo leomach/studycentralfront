@@ -265,6 +265,9 @@ body {
   background-color: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  /* Trava scroll horizontal indevido (ex.: uma linha de chips que não coube
+     numa tela estreita) sem esconder o scroll vertical de verdade da página. */
+  overflow-x: hidden;
 }
 
 body {

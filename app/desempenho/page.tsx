@@ -40,7 +40,7 @@ export default function DesempenhoPage() {
 
   if (isLoading || !data) {
     return (
-      <Canvas tone="forest" className="min-h-dvh text-cream">
+      <Canvas tone="forest" className="text-cream">
         <AppNav title="Últimos 30 dias" />
         <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-70">Carregando…</p>
       </Canvas>
@@ -52,7 +52,7 @@ export default function DesempenhoPage() {
   const fc = data.flashcards;
 
   return (
-    <Canvas tone="forest" className="min-h-dvh text-cream">
+    <Canvas tone="forest" className="text-cream">
       <AppNav title="Últimos 30 dias" />
 
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">

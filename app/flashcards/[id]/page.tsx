@@ -23,7 +23,7 @@ export default function FlashcardDetalhePage({
 
   if (!fc) {
     return (
-      <Canvas tone="lilac" className="min-h-dvh">
+      <Canvas tone="lilac">
         {nav}
         <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-60">Carregando…</p>
       </Canvas>
@@ -31,7 +31,7 @@ export default function FlashcardDetalhePage({
   }
 
   return (
-    <Canvas tone="lilac" className="min-h-dvh">
+    <Canvas tone="lilac">
       {nav}
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
         <p className="font-mono text-[13px] opacity-60">

@@ -19,7 +19,7 @@ const ROOT_TONES = ["lilac", "sun", "spring", "sky", "bubblegum", "clay"] as con
 export default function CatalogoPage() {
   const router = useRouter();
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       <AppNav title="Catálogo" action={<AppNavBackButton onClick={() => router.push("/perfil")} />} />
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
         <h1 className="m-0 font-poster text-[36px] uppercase leading-[0.9] tracking-[-0.04em]">Catálogo</h1>

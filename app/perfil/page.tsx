@@ -68,7 +68,7 @@ export default function PerfilPage() {
   const acerto = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : null;
 
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       <AppNav title="Perfil" action={<AppNavBackButton onClick={() => router.push("/")} />} />
 
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
@@ -142,7 +142,7 @@ export default function PerfilPage() {
             <Linha
               label="Tema"
               action={
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap justify-end gap-1.5">
                   {TEMAS.map((t) => (
                     <Chip key={t.value} size="sm" selected={tema === t.value} onClick={() => trocarTema(t.value)}>
                       {t.label}

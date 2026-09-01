@@ -67,7 +67,7 @@ function NovoFlashcard() {
   };
 
   return (
-    <Canvas tone="lilac" className="min-h-dvh">
+    <Canvas tone="lilac">
       <AppNav title="Novo flashcard" action={<AppNavBackButton onClick={() => router.back()} />} />
 
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">

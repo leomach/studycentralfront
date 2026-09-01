@@ -59,7 +59,7 @@ export default function FlashcardsPage() {
   );
 
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       <AppNav
         title="Flashcards"
         action={

@@ -57,7 +57,7 @@ export default function NovaQuestaoPage() {
   };
 
   return (
-    <Canvas tone="cream" className="min-h-dvh">
+    <Canvas tone="cream">
       <AppNav title="Nova questão" action={<AppNavBackButton onClick={() => router.back()} />} />
 
       <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">

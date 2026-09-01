@@ -51,24 +51,30 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, [allowed]);
 
-  if (isPublicRoute) return <>{children}</>;
+  // Um wrapper só, sempre com a mesma forma (flex column, min-h-dvh no topo,
+  // flex-1 min-h-0 no meio), pra toda rota — inclusive as públicas. Antes,
+  // rota pública pulava o wrapper e cada página compensava com `min-h-dvh`
+  // no próprio Canvas; nas rotas com TabBar isso fazia o Canvas (flex-1
+  // min-h-0) crescer além do espaço reservado pra ele, empurrando a TabBar
+  // pra fora da viewport e forçando a página inteira a rolar. Com um wrapper
+  // único, nenhuma página precisa (nem deve) forçar `min-h-dvh` no Canvas.
+  let content: ReactNode;
+  let tabBar = false;
 
-  if (session.status === "loading") {
-    return (
-      <div className="flex min-h-dvh flex-1 items-center justify-center bg-paper">
+  if (isPublicRoute) {
+    content = children;
+  } else if (session.status === "loading") {
+    content = (
+      <div className="flex flex-1 items-center justify-center">
         <p className="font-sans text-[14px] font-bold opacity-50">Carregando…</p>
       </div>
     );
-  }
-
-  if (session.status === "anonymous") {
+  } else if (session.status === "anonymous") {
     // useEffect acima já disparou o redirect; nada pra mostrar no meio tempo.
-    return null;
-  }
-
-  if (session.status === "authenticated" && session.plan !== "premium") {
-    return (
-      <Canvas tone="forest" className="min-h-dvh">
+    content = null;
+  } else if (session.status === "authenticated" && session.plan !== "premium") {
+    content = (
+      <Canvas tone="forest">
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-[var(--canvas-pad)] text-center text-cream">
           <Face mood="calm" tone="cream" size={120} />
           <h1 className="m-0 font-poster text-[38px] uppercase leading-[0.9] tracking-[-0.04em]">
@@ -82,12 +88,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </div>
       </Canvas>
     );
+  } else {
+    content = children;
+    tabBar = showTabBar;
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <div className="flex flex-1 flex-col">{children}</div>
-      {showTabBar && <TabBar />}
+    <div className="flex min-h-dvh flex-col bg-paper">
+      <div className="flex min-h-0 flex-1 flex-col">{content}</div>
+      {tabBar && <TabBar />}
     </div>
   );
 }

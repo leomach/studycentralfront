@@ -74,7 +74,7 @@ export default function HomePage() {
   const { tone, mood, headline } = ESTADOS[estado];
 
   return (
-    <Canvas tone={tone} className="min-h-dvh">
+    <Canvas tone={tone}>
       <AppNav
         action={
           <AppNavAvatarButton
