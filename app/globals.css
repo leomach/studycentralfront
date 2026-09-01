@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tokens de cor — CLAUDE.md §4.
+ * Modo claro é o padrão; o escuro é derivado e trocado via .dark ou
+ * prefers-color-scheme.
+ */
+:root {
+  --paper: #f4f7f4;
+  --surface: #ffffff;
+  --ink: #1b2a28;
+  --muted: #5e6e6b;
+  --rule: #dce3de;
+  --accent: #1f5f73;
+
+  --correct: #2f7a55;
+  --wrong: #a8443c;
+  --due: #9a6b1f;
+}
+
+/* Preferência do sistema, quando não há escolha manual. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #151c1e;
+    --surface: #1d2629;
+    --ink: #e3e9e6;
+    --muted: #8a9a96;
+    --rule: #2b3639;
+    --accent: #4e9fb8;
+
+    --correct: #4e9e72;
+    --wrong: #c96b60;
+    --due: #c99a47;
+  }
+}
+
+/* Escolha manual sempre vence a preferência do sistema. */
+:root[data-theme="dark"] {
+  --paper: #151c1e;
+  --surface: #1d2629;
+  --ink: #e3e9e6;
+  --muted: #8a9a96;
+  --rule: #2b3639;
+  --accent: #4e9fb8;
+
+  --correct: #4e9e72;
+  --wrong: #c96b60;
+  --due: #c99a47;
+}
+
+html,
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* Foco de teclado sempre visível (acessibilidade, §9). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
