@@ -11,7 +11,9 @@ interface SheetProps {
   footer?: ReactNode;
 }
 
-// Folha deslizante inferior (bottom sheet) — usada para filtros no mobile (§6.3).
+// Folha deslizante inferior — filtros e formulários curtos (design system
+// STUD — components/overlay/Sheet.jsx). `fixed`, não `absolute`: no protótipo
+// era relativo ao app-frame de demo, aqui precisa cobrir o viewport de verdade.
 export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
   useEffect(() => {
     if (!open) return;
@@ -23,42 +25,34 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-150",
+        "fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-150 ease-snap",
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
       )}
       aria-hidden={!open}
     >
-      <div
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-        aria-hidden
-      />
+      <div className="absolute inset-0" style={{ background: "rgba(17,17,16,0.4)" }} onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative w-full max-w-leitura bg-surface rounded-t-2xl border-t border-rule",
-          "max-h-[85vh] flex flex-col transition-transform duration-150",
+          "relative flex max-h-[88%] w-full flex-col rounded-t-panel bg-white text-ink",
+          "transition-transform duration-slow ease-snap",
           open ? "translate-y-0" : "translate-y-full",
         )}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-rule">
-          <h2 className="text-corpo font-medium text-ink">{title}</h2>
+        <div className="flex items-center justify-between gap-4 px-[var(--screen-pad)] pb-4 pt-6">
+          <h2 className="m-0 font-display text-heading font-black tracking-title">{title}</h2>
           <button
             onClick={onClose}
-            className="text-muted text-rotulo px-2 py-1"
             aria-label="Fechar"
+            className="grid h-9 w-9 place-items-center rounded-full border-0 bg-[var(--surface-sunk)] font-sans text-base font-black text-ink"
           >
-            Fechar
+            ✕
           </button>
         </div>
-        <div className="overflow-y-auto px-4 py-4 flex flex-col gap-4">
-          {children}
-        </div>
-        {footer && (
-          <div className="px-4 py-3 border-t border-rule">{footer}</div>
-        )}
+        <div className="flex flex-col gap-5 overflow-y-auto px-[var(--screen-pad)] pb-4">{children}</div>
+        {footer && <div className="px-[var(--screen-pad)] pb-6 pt-4">{footer}</div>}
       </div>
     </div>
   );

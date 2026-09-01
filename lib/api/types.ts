@@ -11,6 +11,17 @@
 
 export type ID = number;
 
+// ---- Conta (GET /api/me) ----
+
+export type Plan = "free" | "premium";
+
+export interface AuthUser {
+  id: ID;
+  name: string;
+  email: string;
+  plan: Plan;
+}
+
 // ---- Catálogo ----
 
 export interface Subject {

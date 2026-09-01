@@ -1,0 +1,41 @@
+/* Three voices: a poster face at absurd sizes, a rounded friendly face for
+   product headers and numbers, a serif for editorial moments. Numerals in a
+   session (timers, counters) stay monospaced, as upstream. */
+:root {
+  /* Poster / canvas headlines */
+  --text-poster: 108px;
+  --text-poster-lh: 0.82;
+  --text-mega: 80px;
+  --text-mega-lh: 0.86;
+  --text-display: 56px;
+  --text-display-lh: 0.9;
+  --text-title: 36px;
+  --text-title-lh: 0.98;
+  --text-heading: 26px;
+  --text-heading-lh: 1.1;
+  --tracking-display: -0.04em;
+  --tracking-title: -0.03em;
+
+  /* Reading scale (source app) */
+  --text-enunciado: 19px;
+  --text-enunciado-lh: 1.6;
+  --text-corpo: 16px;
+  --text-corpo-lh: 1.55;
+  --text-secundario: 14px;
+  --text-secundario-lh: 1.5;
+  --text-rotulo: 13px;
+  --text-rotulo-lh: 1.4;
+  --text-numero: 34px;
+  --text-numero-lh: 1;
+
+  --text-eyebrow: 11px;
+  --tracking-eyebrow: 0.16em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  --measure-read: 38rem;
+}

@@ -38,10 +38,10 @@ export function SyncIndicator() {
   if (online && pending === 0) return null;
 
   return (
-    <div className="text-rotulo text-muted flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] font-medium opacity-70">
       <span
         className="inline-block h-2 w-2 rounded-full"
-        style={{ backgroundColor: online ? "var(--due)" : "var(--muted)" }}
+        style={{ backgroundColor: online ? "var(--sun)" : "currentColor" }}
         aria-hidden
       />
       {!online

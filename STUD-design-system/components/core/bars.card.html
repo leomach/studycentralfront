@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Bars + BarChart" subtitle="Progress, accuracy rows, health, weekly volume" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0}body{background:var(--cream);padding:18px;font-family:var(--font-sans);color:var(--text-strong)}a{color:var(--accent)}a:hover{color:var(--accent-press)}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { ProgressBar, AccuracyBar, SegmentBar, BarChart } = window.STUDDesignSystem_29ef30;
+const Row = ({children, gap=10, wrap=true, align='center'}) => <div style={{display:'flex',flexWrap:wrap?'wrap':'nowrap',gap,alignItems:align}}>{children}</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,alignItems:'start'}}>
+  <div>
+    <ProgressBar value={62} />
+    <div style={{height:10}} />
+    <AccuracyBar label="Licitações" correct={9} answered={20} tone="wrong" />
+    <AccuracyBar label="Direitos Fundamentais" correct={17} answered={21} />
+    <div style={{height:8}} />
+    <SegmentBar segments={[{value:6,tone:'sun'},{value:11,tone:'lilac'},{value:23,tone:'spring'}]} height={16} />
+  </div>
+  <BarChart data={[{label:'Seg',value:9},{label:'Ter',value:14},{label:'Qua',value:6},{label:'Qui',value:11},{label:'Sex',value:4},{label:'Sáb',value:7},{label:'Dom',value:2}]} highlight={1} height={150} />
+</div></>);
+</script>
+</body></html>

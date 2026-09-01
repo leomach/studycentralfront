@@ -44,30 +44,37 @@ O backend é um projeto separado em **Go + Gin + Gorm + PostgreSQL**, mantido
 deliberadamente pequeno. Você não precisa alterá-lo, mas precisa conhecê-lo
 para consumir corretamente.
 
-**Quatro domínios**: `catalog` (eixo temático, banca, concurso), `question`
-(questão e tentativa), `flashcard` (card e estado de revisão) e `dashboard`
-(agregações e a fila do dia).
+**Cinco domínios**: `auth` (contas, login, refresh token), `catalog` (eixo
+temático, banca, concurso — compartilhado entre contas), `question` (questão
+— compartilhada — e tentativa — por conta), `flashcard` (card e estado de
+revisão, por conta) e `dashboard` (agregações e a fila do dia, por conta).
 
-**Modelo de dados** — os campos que importam para o frontend:
+**Modelo de dados** — os campos que importam para o frontend (nomes reais do
+Go, não os do desenho original — ver auditoria de 2026-09-01):
 
 ```
-subjects            id, parent_id, name              # eixo temático, hierárquico
-bancas              id, name                          # Cebraspe, FGV, FCC...
-exams               id, name, banca_id, year          # concurso
-questions           id, subject_id, banca_id, exam_id, exam_year,
+users               id, name, email, plan ('free' | 'premium')
+subjects            id, parent_id, name              # eixo temático, hierárquico — COMPARTILHADO
+bancas              id, name                          # Cebraspe, FGV, FCC... — COMPARTILHADO
+exams               id, name, banca_id, year          # concurso — COMPARTILHADO
+questions           id, subject_id, banca_id, exam_id,
                     format ('certo_errado' | 'multipla_escolha'),
-                    statement, alternatives (jsonb), correct_answer
-attempts            id, question_id, given_answer, is_correct,
-                    confidence ('certeza' | 'duvida' | 'chute'), attempted_at
+                    statement, alternatives ({key,text}[]), correct_answer
+                    # COMPARTILHADA — sem exam_year embutido; o ano vive em exams.year
+attempts            id, question_id, answer, is_correct,
+                    confidence ('certeza' | 'duvida' | 'chute'), created_at
+                    # por conta
 flashcards          id, subject_id, source_question_id,
                     kind ('pergunta_resposta' | 'resumo'), front, back
+                    # por conta
 flashcard_reviews   id, flashcard_id, due_date, interval_days,
-                    ease_factor, reps, lapses, last_reviewed_at
+                    ease_factor, reps, lapses, last_grade
+                    # por conta (sem last_reviewed_at)
 ```
 
-Existe também uma tabela `users`, mas autenticação está fora de escopo: o
-backend fixa um único usuário e o frontend não deve enviar identificação de
-usuário em nenhuma requisição.
+**Multi-tenancy**: toda conta nasce `free` e não acessa nenhuma rota fora de
+`/api/auth/*` (403 em tudo o resto) até ser promovida a `premium`
+manualmente. Ver §8 e `lib/auth/`.
 
 **Algoritmo de repetição espaçada**: SM-2 clássico (não FSRS), implementado em
 `internal/flashcard/sm2.go`. As regras exatas, que o espelho em TypeScript
@@ -136,119 +143,122 @@ acontece depois, em segundo plano, e não é problema do usuário.
 
 ---
 
-## 4. Direção visual
+## 4. Direção visual — design system STUD (referência obrigatória)
 
-### Ancoragem
+> **Toda decisão visual de front, a partir de 2026-09-01, segue o design
+> system em `STUD-design-system/`** (na raiz deste repo, irmão de `app/`).
+> Contém `tokens/*.css` (cor, tipografia, espaço, borda, movimento),
+> `components/**/*.jsx` (27 componentes de referência) e
+> `ui_kits/central-de-estudos/*.jsx` (protótipo clicável das telas do
+> produto, incluindo três que ainda não existiam aqui: onboarding, auth,
+> perfil). Qualquer tela nova ou retrabalhada consulta esse diretório
+> primeiro — não improvise um visual paralelo. Os componentes reais deste
+> repo vivem em `components/ui/*.tsx`: são a tradução dos `.jsx` do STUD
+> (que usam 100% `style={{}}` inline) para Tailwind + `var(--token)>`, com o
+> mesmo agrupamento de arquivo do STUD (`Bento`/`Canvas`/`Panel` moram em
+> `Card.tsx`; `Chip` mora em `Badge.tsx`; `AccuracyBar`/`SegmentBar`/
+> `BarChart` moram em `ProgressBar.tsx`; `StatBox` mora em `StatBlock.tsx`;
+> `SyncIndicator` mora dentro de `AppNav.tsx`) — ao criar um componente novo
+> do kit, siga esse agrupamento em vez de criar um arquivo por nome.
 
-O vocabulário visual vem do mundo em que este conteúdo vive: documentos
-institucionais, editais, gabaritos oficiais, cartão-resposta. Isso significa
-precisão e sobriedade — não "app de produtividade colorido", nem "plataforma
-educacional alegre". A interface deve parecer um instrumento sério, porque o
-uso é sério e o tempo é curto.
+Esta seção documentava antes uma direção sóbria e de baixa saturação — o
+STUD é deliberadamente o oposto (cor saturada em tela cheia, mascote,
+tipografia poster) e substitui essa direção por inteiro, por pedido
+explícito. O que a seção antiga acertava e continua valendo: a sessão é o
+produto, o resto é infraestrutura de apoio; alvos grandes; feedback
+imediato a partir do estado local. O que muda é só o vocabulário visual.
+
+### A regra de ouro: o kit manda no visual, o backend manda no dado
+
+O STUD é um protótipo. Ele mostra telas inteiras — inclusive campos, botões e
+fluxos (recuperar senha, trocar e-mail, concurso alvo, lembrete diário,
+filtro de histórico em Questões) que **não têm endpoint real** no backend
+Go descrito na §1.1/§8. A regra usada para reconciliar isso, e que qualquer
+trabalho futuro de front deve seguir:
+
+**A interface do kit entra inteira — nunca se esconde uma tela ou um campo
+só porque falta back-end.** Onde não houver dado ou ação real por trás, o
+elemento continua visível e tocável, mas ao ser usado mostra um aviso curto
+e honesto (variação de "em breve — isso ainda não existe no servidor"), em
+vez de: (a) fingir que a ação funcionou, ou (b) desaparecer silenciosamente.
+Isso não é uma tela cheia de bloqueio nem um modal — é um texto inline ou
+um `Card`/`Badge` discreto perto de onde a ação foi tentada. Exemplos já
+implementados: `app/entrar/page.tsx` ("Esqueci minha senha"),
+`app/questoes/page.tsx` (filtro "Histórico"), `app/perfil/page.tsx`
+(concurso alvo, meta diária, lembrete, trocar e-mail/senha).
+
+Ao criar uma tela nova a partir do kit, audite campo a campo contra a §1.1 e
+a §8 antes de escrever: se o campo tiver dado real (nome, e-mail, plano,
+due/mature/acerto, contagem da outbox…), ligue-o de verdade; se não tiver,
+aplique o padrão "em breve" acima — nunca invente um número (streak, horas
+estudadas) só porque o kit mostra um.
 
 ### Cor
 
-**Modo claro é o padrão.** O modo escuro existe como alternativa e deve seguir
-`prefers-color-scheme` do sistema, além de ter um controle manual nas
-configurações — mas toda decisão de design é tomada primeiro no claro, e o
-escuro é derivado dele.
-
-A paleta é de baixa saturação e temperatura fria. A razão é funcional: cores
-quentes e saturadas puxam atenção para si, o que é útil em interfaces que
-querem ser notadas e prejudicial numa que precisa desaparecer para que o
-enunciado da questão seja a única coisa na cabeça do usuário. Verdes e azuis
-dessaturados sustentam leitura longa sem competir com o conteúdo.
+Paleta de cor saturada em tela cheia via `Canvas` — cada tela vive dentro de
+um bloco de cor sólida (`tokens/colors.css`, ported para `tailwind.config.ts`
+como `coral`/`sun`/`spring`/`forest`/`lilac`/`bubblegum`/`sky`/`clay`/
+`cream`). As cores semânticas antigas continuam existindo com os mesmos
+nomes — só o valor mudou, então código que só usa essas variáveis não
+precisa ser tocado:
 
 ```
---paper        #F4F7F4   fundo base: branco levemente esverdeado
---surface      #FFFFFF   superfícies elevadas
---ink          #1B2A28   texto principal: verde-petróleo muito escuro
---muted        #5E6E6B   texto secundário, rótulos
---rule         #DCE3DE   divisórias e contornos
---accent       #1F5F73   azul-petróleo: ação primária, foco, seleção
-
---correct      #2F7A55   acerto
---wrong        #A8443C   erro
---due          #9A6B1F   vencido / pendente
+--paper / --surface / --ink / --muted / --rule / --accent
+--correct / --wrong / --due
 ```
 
-O fundo não é branco puro nem creme. Branco puro em tela, sob leitura
-prolongada, cansa; creme é o clichê visual de todo app de leitura e leva a
-interface para um registro nostálgico que não combina com o assunto. O verde
-quase imperceptível do `--paper` é o do papel de caderno bom — presente o
-bastante para tirar a dureza do branco, discreto o bastante para ninguém
-chamar de "verde".
+**Atenção com `--rule`**: no STUD ele vale a cor `ink` (quase preto) e é
+usado como contorno **grosso** de ~2.5px, não como divisória sutil. Uma tela
+que reaproveite `border-rule`/`divide-rule` sem revisão visual vai ganhar uma
+linha grossa onde antes era uma linha cinza discreta — revise cada tela
+migrada, não confie na variável sozinha.
 
-O texto principal é verde-petróleo escuro, não preto. Preto sobre fundo claro
-cria contraste alto demais para leitura de enunciados longos; um escuro com
-matiz reduz a fadiga sem perder legibilidade (o contraste continua acima de
-AA com folga).
-
-O acento é azul-petróleo, deliberadamente distante do verde do `--correct`.
-Se ação primária e feedback de acerto fossem ambos verdes, o usuário
-precisaria interpretar contexto para saber o que a cor está dizendo — e num
-app onde a resposta certa é a informação mais importante da tela, essa
-ambiguidade é inaceitável.
-
-As três cores funcionais **só** aparecem para comunicar estado — nunca como
-decoração, gradiente ou destaque estético. Se uma cor funcional aparecer num
-lugar que não seja acerto, erro ou vencimento, está errado.
-
-### Modo escuro (derivado)
-
-```
---paper        #151C1E
---surface      #1D2629
---ink          #E3E9E6
---muted        #8A9A96
---rule         #2B3639
---accent       #4E9FB8
-
---correct      #4E9E72
---wrong        #C96B60
---due          #C99A47
-```
-
-Não inverta mecanicamente as cores do modo claro: as cores funcionais precisam
-ser mais claras e um pouco menos saturadas no escuro para manter contraste
-sem vibrar contra o fundo.
+Modo escuro segue existindo (`:root[data-theme="dark"]` e
+`prefers-color-scheme`), com controle manual real em `app/perfil/page.tsx`
+via `lib/theme.ts` (`getTheme`/`applyTheme`, persistido em `localStorage`,
+reaplicado no boot por `app/providers.tsx`).
 
 ### Tipografia
 
-Uma família: **IBM Plex Sans**, com **IBM Plex Mono** exclusivamente para
-números (cronômetro, contadores, percentuais, intervalos em dias). A escolha é
-deliberada: Plex tem origem institucional e boa legibilidade em corpo pequeno,
-e a variante mono dá aos números a estabilidade de largura que faz um
-cronômetro não "tremer" a cada segundo.
-
-Escala (base 16px):
+Quatro vozes, cada uma com um só trabalho (`app/layout.tsx`):
 
 ```
-enunciado de questão     19px / 1.6    — o texto mais importante do app
-corpo                    16px / 1.55
-secundário               14px / 1.5
-rótulo                   13px / 1.4
-número grande (mono)     32px / 1.1
+Nunito            voz padrão — corpo, headers, números, botões
+Archivo Black     headlines poster (font-poster) — telas cheias, "STUD" no AppNav
+Instrument Serif  só o verso de flashcard e citações (font-serif)
+IBM Plex Mono     só valores tipo relógio (font-mono) — cronômetro, intervalos, %
 ```
 
-Enunciados de questão são o conteúdo central: dê a eles largura de linha
-confortável (máx. ~70 caracteres), espaçamento generoso e o maior contraste da
-tela. Nunca comprima enunciado para caber mais coisa.
+Escala completa em `tailwind.config.ts` (`fontSize.enunciado/corpo/
+secundario/rotulo/numero/eyebrow/heading/title/display/mega/poster`).
+Enunciado de questão continua sendo o texto mais importante da tela — não
+comprimir para caber mais coisa.
 
 ### Espaço e forma
 
-Raio de canto: `6px` em superfícies, `10px` em botões de ação primária. Não use
-o mesmo raio em tudo — hierarquia também é forma.
-
-Evite encapsular todo conteúdo em cards idênticos. Numa lista de questões, uma
-divisória horizontal simples entre itens comunica melhor e pesa menos que 20
-cartões com sombra.
+Raio de canto vai de `xs` a `xl`, mais `panel` (folha inferior) e `pill`
+(botões, chips, avatar) — ver `borderRadius` em `tailwind.config.ts`. Sombra
+é sempre opt-in (`shadow-hard*`/`shadow-panel`), nunca padrão num bloco de
+cor chapada — contorno com sombra dura (`sticker`/`outlined` nos
+componentes) é a exceção visível, não a regra.
 
 ### Movimento
 
-Movimento apenas como resposta a uma ação: virar um flashcard, revelar o
-gabarito, confirmar sincronização. Duração curta (150–200ms). Nada de entradas
-animadas em seções ao carregar a página. Respeitar `prefers-reduced-motion`.
+`transitionTimingFunction.snap`/`.pop` e `transitionDuration.fast/DEFAULT/
+slow` em `tailwind.config.ts`. Mesma regra de antes: resposta a uma ação
+(virar card, revelar gabarito, pressionar botão), nunca entrada animada de
+seção ao carregar a página. Respeitar `prefers-reduced-motion`. Pressão de
+botão é feedback via escala/translação (`Button.tsx`), nunca opacidade.
+
+### Navegação
+
+`TabBar` (`components/ui/TabBar.tsx`) é o único chrome global e persistente:
+4 destinos fixos (Início, Questões, Cards, Progresso), renderizado por
+`AuthGate` fora de rotas fullscreen. `AppNav` (`components/AppNav.tsx`) **não**
+é chrome global — é renderizado como primeiro filho dentro do `Canvas` de
+cada tela, herdando a cor via `tone="inherit"`. Catálogo e Perfil não estão
+no `TabBar`: Perfil é alcançado pelo botão de avatar na Início
+(`AppNavAvatarButton`); Catálogo, de dentro do Perfil.
 
 ---
 
@@ -271,21 +281,41 @@ app/
 │   └── [id]/page.tsx
 ├── catalogo/
 │   └── page.tsx                   # eixos, bancas, concursos
-└── desempenho/
-    └── page.tsx
+├── desempenho/
+│   └── page.tsx
+├── perfil/
+│   └── page.tsx                   # identidade, stats, "em breve" (design system STUD)
+├── entrar/page.tsx                # login
+├── cadastro/page.tsx              # registro
+└── onboarding/
+    └── page.tsx                   # 3 telas, mostradas uma vez (lib/onboarding.ts)
 
 components/
-├── ui/                            # primitivos: botão, campo, seletor, folha
+├── ui/                            # primitivos do design system STUD (Button, Card/
+│                                    Bento/Canvas/Panel, Badge/Chip, Face, StatBlock/
+│                                    StatBox, ProgressBar, WeekStrip, Field, Select,
+│                                    Sheet, DurationPicker, TabBar)
+├── AppNav.tsx                      # barra por-tela (não é chrome global — ver §4)
+├── AuthGate.tsx                    # decide o que renderizar conforme a sessão
 ├── sessao/                        # componentes exclusivos da sessão
 ├── questao/
 └── flashcard/
 
 lib/
 ├── api/                           # cliente HTTP + hooks TanStack Query
+├── auth/                          # sessão (Dexie), login/registro/refresh, hooks
 ├── db/                            # schema Dexie, outbox
 ├── sync/                          # motor de sincronização
+├── theme.ts                       # tema claro/escuro/sistema (§4), usado em /perfil
+├── onboarding.ts                   # flag "já visto" das telas de onboarding
 └── sm2.ts                         # espelho do SM-2 do backend (ver §7)
 ```
+
+Rotas de auth, sem `TabBar`: `app/entrar/page.tsx` (login), `app/cadastro/
+page.tsx` (registro), `app/onboarding/page.tsx` (mostrada uma vez para quem
+chega sem sessão — ver `lib/onboarding.ts`). `components/AuthGate.tsx` é o
+único lugar que decide o que renderizar conforme a sessão — sem ele em cada
+tela, sem `if (!logado)` espalhado.
 
 Regra de fetch: nenhum componente chama `fetch` diretamente. Todo acesso a
 dados passa por um hook em `lib/api/`. Isso mantém a lógica de cache e offline
@@ -486,6 +516,13 @@ em `lib/sm2.ts`. É duplicação consciente, não descuido. Portanto:
 Endpoints esperados do backend Go:
 
 ```
+# Públicas — sem token
+POST   /api/auth/register             { name, email, password }
+POST   /api/auth/login                { email, password } -> { access_token, refresh_token }
+POST   /api/auth/refresh              { refresh_token }   -> { access_token, refresh_token }
+POST   /api/auth/logout               { refresh_token }
+
+# Protegidas — header Authorization: Bearer <access_token>, exige plano premium
 GET    /api/subjects
 POST   /api/subjects
 GET    /api/bancas
@@ -493,18 +530,26 @@ POST   /api/bancas
 GET    /api/exams
 POST   /api/exams
 
-GET    /api/questions?subject_id=&banca_id=&exam_id=&year=&status=
+GET    /api/questions?subject_id=&banca_id=&exam_id=&format=
 POST   /api/questions
 GET    /api/questions/:id
-POST   /api/questions/:id/attempts     { given_answer, confidence, client_id }
+POST   /api/questions/:id/attempts     { answer, confidence, client_id }
 
-GET    /api/flashcards?subject_id=&state=
+GET    /api/flashcards?subject_id=
 POST   /api/flashcards
 POST   /api/flashcards/:id/reviews     { grade, client_id }
 
 GET    /api/study/queue?minutes=
 GET    /api/dashboard/overview
 ```
+
+Toda rota fora de `/api/auth/*` exige o header `Authorization: Bearer
+<access_token>` — sem ele, 401; com token de conta `free`, 403. `lib/api/client.ts`
+é o único lugar que anexa esse header e cuida de renovar o token perto de
+expirar (`lib/auth/session.ts`) — nenhum outro código deve montar esse header
+na mão. `answer`/`format` (não `given_answer`/`year`/`status`) são os nomes
+reais de campo/filtro do Go — "ano" e "nunca respondida/errei/acertei no
+chute" não existem como filtro no backend hoje, não invente esses parâmetros.
 
 A URL base vem de `NEXT_PUBLIC_API_URL`. Em desenvolvimento o backend roda
 localmente em outra porta, então CORS precisa estar liberado do lado Go.
@@ -538,7 +583,6 @@ claramente marcado como provisório.
 
 Não implementar sem pedido explícito:
 
-- Autenticação e telas de login (usuário único por enquanto)
 - Notificações push
 - Sincronização multi-dispositivo com resolução de conflito
 - Gamificação (pontos, medalhas, ligas)
@@ -546,6 +590,12 @@ Não implementar sem pedido explícito:
 - Importação de PDF ou qualquer ingestão automatizada
 - Compartilhamento de decks ou qualquer feature social
 - Modo de leitura offline de teoria/resumos longos
+- Verificação de e-mail, "esqueci minha senha", troca de e-mail/senha,
+  concurso alvo, lembrete diário, listagem/revogação de sessões ativas — o
+  backend não expõe nada disso ainda. **Isso é escopo de back-end, não de
+  UI**: o kit STUD mostra esses campos/ações e a UI correspondente já existe
+  (ver §4, "a regra de ouro"); o que fica fora do v1 é implementar o
+  endpoint real por trás deles, não o botão em si
 
 ---
 

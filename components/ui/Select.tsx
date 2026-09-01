@@ -14,6 +14,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string;
 }
 
+// Select nativo com a pele STUD: fundo cinza sólido, caret pesado em unicode
+// (design system — components/forms/Select.jsx).
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, options, placeholder, id, className, ...props },
   ref,
@@ -21,27 +23,32 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   const auto = useId();
   const selectId = id ?? auto;
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={selectId} className="text-rotulo text-muted">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={selectId} className="font-sans text-eyebrow font-black uppercase tracking-eyebrow opacity-55">
         {label}
       </label>
-      <select
-        ref={ref}
-        id={selectId}
-        className={cn(
-          "w-full min-h-[44px] bg-surface text-ink border border-rule rounded-surface px-3 text-corpo",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-          className,
-        )}
-        {...props}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          ref={ref}
+          id={selectId}
+          className={cn(
+            "w-full min-h-[var(--tap-lg)] appearance-none rounded-md border-0 bg-[var(--surface-sunk)]",
+            "py-3.5 pl-[18px] pr-11 font-sans text-[16px] font-extrabold text-[var(--text-strong)]",
+            className,
+          )}
+          {...props}
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-[18px] top-1/2 -translate-y-1/2 font-sans text-[13px] font-black">
+          ▾
+        </span>
+      </div>
     </div>
   );
 });

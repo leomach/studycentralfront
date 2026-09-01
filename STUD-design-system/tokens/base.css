@@ -1,0 +1,14 @@
+/* Minimal base layer. Everything else in this system is component-level. */
+*, *::before, *::after { box-sizing: border-box; }
+
+a { color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 2px; }
+a:hover { color: var(--accent-press); }
+
+button, input, select, textarea { font: inherit; }
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; font-weight: 600; }
+
+:focus-visible { outline: var(--stroke-2) solid var(--ink); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

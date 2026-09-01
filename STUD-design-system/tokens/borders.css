@@ -1,0 +1,26 @@
+/* Chrome is soft-cornered and mostly flat. Outlines and hard shadows exist,
+   but they are a deliberate "sticker" treatment, not the default card. */
+:root {
+  --stroke-1: 1.5px;
+  --stroke-2: 2.5px;
+  --stroke-3: 4px;
+
+  --border: var(--stroke-2) solid var(--rule);
+  --border-thin: var(--stroke-1) solid var(--rule);
+  --border-thick: var(--stroke-3) solid var(--rule);
+
+  --radius-xs: 8px;
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+  --radius-panel: 32px;
+  --radius-pill: 999px;
+
+  /* Sticker shadows — opt in, never on flat colour blocks */
+  --shadow-hard-sm: 3px 3px 0 var(--rule);
+  --shadow-hard: 5px 5px 0 var(--rule);
+  --shadow-hard-lg: 8px 8px 0 var(--rule);
+  --shadow-hard-press: 1px 1px 0 var(--rule);
+  --shadow-panel: 0 -18px 40px rgba(17, 17, 16, 0.12);
+}

@@ -1,0 +1,14 @@
+/* Webfonts, all from Google Fonts.
+   Archivo Black — poster caps on colour canvases.
+   Nunito 700–1000 — the friendly product voice: headers, numbers, chips.
+   Instrument Serif — editorial counterpoint (flashcard answers, quotes).
+   IBM Plex Mono — session timers and counters, inherited from the source app. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Nunito:wght@400;600;700;800;900;1000&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --font-poster: "Archivo Black", "Nunito", system-ui, sans-serif;
+  --font-display: "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}

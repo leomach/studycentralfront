@@ -1,0 +1,20 @@
+/* Motion is short, springy and mechanical: things snap into place. */
+:root {
+  --dur-fast: 90ms; /* @kind other */
+  --dur: 150ms; /* @kind other */
+  --dur-slow: 240ms; /* @kind other */
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1); /* @kind other */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+
+  /* Press = travel toward the shadow, never a fade */
+  --press-travel: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms; /* @kind other */
+    --dur: 0.01ms; /* @kind other */
+    --dur-slow: 0.01ms; /* @kind other */
+  }
+}

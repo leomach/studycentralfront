@@ -1,0 +1,34 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Canvas + Card + Panel" subtitle="Full-bleed colour screen with a white bottom sheet" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0}body{background:var(--cream);padding:14px;font-family:var(--font-sans);color:var(--text-strong)}a{color:var(--accent)}a:hover{color:var(--accent-press)}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { Card, Bento, Canvas, Panel, StatBox, Face, Button } = window.STUDDesignSystem_29ef30;
+const Row = ({children, gap=10, wrap=true, align='center'}) => <div style={{display:'flex',flexWrap:wrap?'wrap':'nowrap',gap,alignItems:align}}>{children}</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<>
+<div style={{display:'grid',gridTemplateColumns:'260px 1fr',gap:14}}>
+  <div style={{height:300,display:'flex',flexDirection:'column',borderRadius:28,overflow:'hidden'}}>
+    <Canvas tone="coral">
+      <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,padding:20,textAlign:'center'}}>
+        <Face mood="focus" size={84} />
+        <span style={{fontFamily:'var(--font-poster)',fontSize:38,lineHeight:0.86,letterSpacing:'-0.045em',textTransform:'uppercase'}}>Bora<br/>estudar</span>
+      </div>
+      <Panel><Row gap={8}><StatBox value="41" label="questões / 7 d" /><StatBox value="74%" label="acerto" /></Row></Panel>
+    </Canvas>
+  </div>
+  <Bento cols={2} style={{alignContent:'start'}}>
+    <Card tone="sun" span={2}><span style={{fontFamily:'var(--font-poster)',fontSize:26,letterSpacing:'-0.035em',textTransform:'uppercase'}}>Licitações</span></Card>
+    <Card tone="spring">spring</Card>
+    <Card tone="lilac">lilac</Card>
+    <Card tone="forest">forest</Card>
+    <Card tone="ink">ink</Card>
+    <Card tone="surface" outlined>outlined</Card>
+    <Card tone="surface" sticker>sticker</Card>
+  </Bento>
+</div></>);
+</script>
+</body></html>

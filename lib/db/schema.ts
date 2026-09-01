@@ -46,6 +46,16 @@ export interface MetaEntry {
   value: string;
 }
 
+// Sessão de autenticação (lib/auth/session.ts). Linha única, chave fixa —
+// não é uma tabela de "usuários", é o par de tokens deste dispositivo.
+export interface SessionRecord {
+  key: "current";
+  accessToken: string;
+  refreshToken: string;
+  plan: string;
+  exp: number; // exp do access token (segundos epoch), para saber quando renovar
+}
+
 export class StudyDB extends Dexie {
   subjects!: Table<Subject, number>;
   bancas!: Table<Banca, number>;
@@ -56,6 +66,7 @@ export class StudyDB extends Dexie {
   outbox!: Table<OutboxItem, string>;
   drafts!: Table<DraftCard, string>;
   meta!: Table<MetaEntry, string>;
+  session!: Table<SessionRecord, string>;
 
   constructor() {
     super("studycentral");
@@ -69,6 +80,9 @@ export class StudyDB extends Dexie {
       outbox: "client_id, created_at",
       drafts: "local_id, created_at",
       meta: "key",
+    });
+    this.version(2).stores({
+      session: "key",
     });
   }
 }

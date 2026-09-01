@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card, Bento, Canvas, Panel } from "@/components/ui/Card";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { Badge } from "@/components/ui/Badge";
+import { Face } from "@/components/ui/Face";
 import { mmss, pct } from "@/lib/format";
 
 export interface SessionStats {
@@ -13,62 +17,52 @@ export interface SessionStats {
   subjects: string[];
 }
 
-// Fim da sessão (§6.2): resumo curto e seco. Sem confete, sem gamificação.
+// Fim da sessão: um rosto, uma linha poster, quatro números, uma saída
+// (design system STUD — components/study/SessionSummary.jsx). Sem confete,
+// sem gamificação — a cor do canvas já carrega o resultado.
 export function SessionSummary({ stats }: { stats: SessionStats }) {
   const router = useRouter();
-  const acerto =
-    stats.questionsAnswered > 0
-      ? `${pct(stats.questionsCorrect, stats.questionsAnswered)}%`
-      : "—";
+  const answered = stats.questionsAnswered;
+  const acerto = answered > 0 ? `${pct(stats.questionsCorrect, answered)}%` : "—";
+  const good = answered === 0 || stats.questionsCorrect / answered >= 0.6;
 
   return (
-    <main className="mx-auto max-w-leitura px-4 pt-10 pb-16 flex flex-col gap-8">
-      <h1 className="text-enunciado text-ink">Sessão encerrada</h1>
-
-      <dl className="grid grid-cols-2 gap-y-6">
-        <div>
-          <dd className="font-mono text-numero text-ink">
-            {stats.questionsAnswered + stats.cardsReviewed}
-          </dd>
-          <dt className="text-rotulo text-muted">itens estudados</dt>
-        </div>
-        <div>
-          <dd className="font-mono text-numero text-ink">{acerto}</dd>
-          <dt className="text-rotulo text-muted">acerto nas questões</dt>
-        </div>
-        <div>
-          <dd className="font-mono text-numero text-ink">
-            {mmss(stats.elapsedSeconds)}
-          </dd>
-          <dt className="text-rotulo text-muted">tempo usado</dt>
-        </div>
-        <div>
-          <dd className="font-mono text-numero text-ink">
-            {stats.cardsReviewed}
-          </dd>
-          <dt className="text-rotulo text-muted">cards revisados</dt>
-        </div>
-      </dl>
-
-      {stats.subjects.length > 0 && (
-        <div>
-          <p className="text-rotulo text-muted mb-2">Eixos nesta sessão</p>
-          <div className="flex flex-wrap gap-2">
+    <Canvas tone={good ? "spring" : "sun"}>
+      <div className="flex flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto px-[var(--canvas-pad)] pb-8 pt-10 text-center">
+        <Face mood={good ? "happy" : "focus"} size={140} />
+        <h1 className="m-0 whitespace-pre-line font-poster text-[46px] uppercase leading-[0.88] tracking-[-0.045em]">
+          {good ? "Boa!\nSessão feita" : "Sessão\nencerrada"}
+        </h1>
+        {stats.subjects.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2">
             {stats.subjects.map((s) => (
-              <span
-                key={s}
-                className="text-secundario text-ink border border-rule rounded-surface px-2 py-1"
-              >
+              <Badge key={s} tone="ink">
                 {s}
-              </span>
+              </Badge>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <Button size="lg" onClick={() => router.push("/")} className="w-full">
-        Voltar ao início
-      </Button>
-    </main>
+      <Panel>
+        <Bento cols={2}>
+          <Card tone="soft" radius="md">
+            <StatBlock size="lg" value={answered + stats.cardsReviewed} label="itens estudados" />
+          </Card>
+          <Card tone="soft" radius="md">
+            <StatBlock size="lg" value={acerto} label="acerto nas questões" />
+          </Card>
+          <Card tone="soft" radius="md">
+            <StatBlock size="lg" mono value={mmss(stats.elapsedSeconds)} label="tempo usado" />
+          </Card>
+          <Card tone="soft" radius="md">
+            <StatBlock size="lg" value={stats.cardsReviewed} label="cards revisados" />
+          </Card>
+        </Bento>
+        <Button size="lg" block trailing="→" onClick={() => router.push("/")}>
+          Voltar ao início
+        </Button>
+      </Panel>
+    </Canvas>
   );
 }

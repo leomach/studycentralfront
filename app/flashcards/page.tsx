@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useFlashcards, useSubjects } from "@/lib/api/queries";
 import type { Flashcard, FlashcardState } from "@/lib/api/types";
@@ -9,30 +10,33 @@ import { db } from "@/lib/db/schema";
 import { removeDraft } from "@/lib/db/outbox";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Card, Canvas } from "@/components/ui/Card";
+import { Badge, Chip } from "@/components/ui/Badge";
+import { Face } from "@/components/ui/Face";
+import { AppNav } from "@/components/AppNav";
 import { subjectPath } from "@/lib/format";
-import { cn } from "@/lib/cn";
 
-const ESTADOS = [
-  { value: "", label: "Todos os estados" },
-  { value: "vencido", label: "Vencido" },
+const ESTADOS: { value: FlashcardState | ""; label: string }[] = [
+  { value: "", label: "Todos" },
+  { value: "vencido", label: "Vencidos" },
   { value: "aprendizado", label: "Em aprendizado" },
-  { value: "maduro", label: "Maduro" },
+  { value: "maduro", label: "Maduros" },
 ];
 
-const estadoCor: Record<FlashcardState, string> = {
-  vencido: "text-due",
-  aprendizado: "text-muted",
-  maduro: "text-correct",
+const ESTADO_BADGE: Record<FlashcardState, "vencido" | "aprendizado" | "maduro"> = {
+  vencido: "vencido",
+  aprendizado: "aprendizado",
+  maduro: "maduro",
 };
 
 function estadoLabel(fc: Flashcard): FlashcardState {
-  if (fc.review && new Date(fc.review.due_date).getTime() <= Date.now())
-    return "vencido";
+  if (fc.review && new Date(fc.review.due_date).getTime() <= Date.now()) return "vencido";
   if (!fc.review || fc.review.interval_days < 21) return "aprendizado";
   return "maduro";
 }
 
 export default function FlashcardsPage() {
+  const router = useRouter();
   const [subjectId, setSubjectId] = useState<number | undefined>(undefined);
   const [state, setState] = useState<FlashcardState | "">("");
   const subjects = useSubjects();
@@ -47,116 +51,103 @@ export default function FlashcardsPage() {
   );
 
   // Fila de rascunhos, alimentada durante a sessão (§6.4). Vem do Dexie local.
-  const drafts = useLiveQuery(
-    () => db().drafts.orderBy("created_at").toArray(),
-    [],
-    [],
-  );
+  const drafts = useLiveQuery(() => db().drafts.orderBy("created_at").toArray(), [], []);
 
   const subjectOptions = useMemo(
-    () =>
-      (subjects.data ?? []).map((s) => ({
-        value: String(s.id),
-        label: subjectPath(s.id, subjects.data ?? []),
-      })),
+    () => (subjects.data ?? []).map((s) => ({ value: String(s.id), label: subjectPath(s.id, subjects.data ?? []) })),
     [subjects.data],
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-enunciado text-ink">Flashcards</h1>
-        <Link href="/flashcards/novo">
-          <Button>Novo card</Button>
-        </Link>
-      </div>
+    <Canvas tone="cream" className="min-h-dvh">
+      <AppNav
+        title="Flashcards"
+        action={
+          <Button size="sm" onClick={() => router.push("/flashcards/novo")}>
+            Novo card
+          </Button>
+        }
+      />
 
-      {/* Rascunhos a completar. */}
-      {drafts.length > 0 && (
-        <section className="mb-6 border border-due/40 rounded-surface p-4 bg-due/5">
-          <p className="text-secundario text-due mb-2">
-            {drafts.length} {drafts.length === 1 ? "rascunho" : "rascunhos"} para
-            criar
-          </p>
-          <ul className="flex flex-col gap-2">
-            {drafts.map((d) => (
-              <li
-                key={d.local_id}
-                className="flex items-center justify-between gap-3"
-              >
-                <span className="text-secundario text-ink line-clamp-1">
-                  {d.front}
-                </span>
-                <div className="flex gap-2 shrink-0">
-                  <Link href={`/flashcards/novo?draft=${d.local_id}`}>
-                    <Button variant="secondary">Completar</Button>
-                  </Link>
-                  <button
-                    onClick={() => removeDraft(d.local_id)}
-                    className="text-rotulo text-muted px-2"
-                    aria-label="Descartar rascunho"
-                  >
-                    Descartar
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <Select
-          label="Eixo"
-          placeholder="Todos"
-          options={subjectOptions}
-          value={subjectId ? String(subjectId) : ""}
-          onChange={(e) =>
-            setSubjectId(e.target.value ? Number(e.target.value) : undefined)
-          }
-        />
-        <Select
-          label="Estado"
-          options={ESTADOS}
-          value={state}
-          onChange={(e) => setState(e.target.value as FlashcardState | "")}
-        />
-      </div>
-
-      {isLoading ? (
-        <p className="text-muted text-corpo">Carregando…</p>
-      ) : cards.length === 0 ? (
-        <p className="text-muted text-corpo">Nenhum flashcard.</p>
-      ) : (
-        <ul className="divide-y divide-rule">
-          {cards.map((fc) => {
-            const estado = estadoLabel(fc);
-            return (
-              <li key={fc.id}>
-                <Link href={`/flashcards/${fc.id}`} className="block py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-corpo text-ink line-clamp-2">
-                      {fc.front}
-                    </p>
-                    <span
-                      className={cn(
-                        "text-rotulo shrink-0",
-                        estadoCor[estado],
-                      )}
+      <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
+        {drafts.length > 0 && (
+          <Card tone="sun" radius="lg" className="mb-6 flex flex-col gap-3">
+            <p className="m-0 font-sans text-[14px] font-extrabold">
+              {drafts.length} {drafts.length === 1 ? "rascunho" : "rascunhos"} para criar
+            </p>
+            <ul className="flex flex-col gap-2">
+              {drafts.map((d) => (
+                <li key={d.local_id} className="flex items-center justify-between gap-3">
+                  <span className="line-clamp-1 font-sans text-[14px] font-bold">{d.front}</span>
+                  <div className="flex flex-shrink-0 gap-2">
+                    <Link href={`/flashcards/novo?draft=${d.local_id}`}>
+                      <Button size="sm" variant="light">
+                        Completar
+                      </Button>
+                    </Link>
+                    <button
+                      onClick={() => removeDraft(d.local_id)}
+                      className="border-0 bg-transparent px-2 font-sans text-[13px] font-bold opacity-70"
+                      aria-label="Descartar rascunho"
                     >
-                      {estado}
-                    </span>
+                      Descartar
+                    </button>
                   </div>
-                  <p className="text-secundario text-muted mt-1">
-                    {fc.kind === "resumo" ? "Resumo" : "Pergunta"} ·{" "}
-                    {subjectPath(fc.subject_id, subjects.data ?? [])}
-                  </p>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </main>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {ESTADOS.map((e) => (
+            <Chip key={e.value} selected={state === e.value} onClick={() => setState(e.value)}>
+              {e.label}
+            </Chip>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <Select
+            label="Eixo"
+            placeholder="Todos"
+            options={subjectOptions}
+            value={subjectId ? String(subjectId) : ""}
+            onChange={(e) => setSubjectId(e.target.value ? Number(e.target.value) : undefined)}
+          />
+        </div>
+
+        <div className="mt-6">
+          {isLoading ? (
+            <p className="font-sans text-[15px] font-bold opacity-60">Carregando…</p>
+          ) : cards.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <Face mood="sleepy" size={100} />
+              <p className="font-sans text-[15px] font-bold opacity-60">Nenhum flashcard.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {cards.map((fc) => {
+                const estado = estadoLabel(fc);
+                return (
+                  <Link key={fc.id} href={`/flashcards/${fc.id}`}>
+                    <Card tone="surface" radius="lg" className="flex flex-col gap-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="m-0 line-clamp-2 font-sans text-[16px] font-bold leading-[1.4]">{fc.front}</p>
+                        <Badge tone={ESTADO_BADGE[estado]}>{estado}</Badge>
+                      </div>
+                      <p className="m-0 font-mono text-[12px] opacity-55">
+                        {fc.kind === "resumo" ? "resumo" : "pergunta"} ·{" "}
+                        {subjectPath(fc.subject_id, subjects.data ?? [])}
+                      </p>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </Canvas>
   );
 }

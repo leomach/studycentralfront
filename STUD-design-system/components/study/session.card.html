@@ -1,0 +1,32 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Session items" subtitle="Question on cream, flashcard on lilac" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0}body{background:var(--cream);padding:12px;font-family:var(--font-sans);color:var(--text-strong)}a{color:var(--accent)}a:hover{color:var(--accent-press)}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { SessionHeader, QuestionItem, FlashcardItem, Canvas } = window.STUDDesignSystem_29ef30;
+const Row = ({children, gap=10, wrap=true, align='center'}) => <div style={{display:'flex',flexWrap:wrap?'wrap':'nowrap',gap,alignItems:align}}>{children}</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+  <div style={{height:412,display:'flex',flexDirection:'column',borderRadius:32,overflow:'hidden'}}>
+    <Canvas tone="cream">
+      <SessionHeader index={3} total={18} secondsLeft={1420} />
+      <div style={{flex:1,minHeight:0}}>
+        <QuestionItem question={{format:'certo_errado',statement:'Os direitos e garantias fundamentais previstos na Constituição Federal têm aplicação imediata.',alternatives:[],correct_answer:'certo'}} meta="Cebraspe · 2024 · Direitos Fundamentais" reasons={["Errou há 3 dias"]} />
+      </div>
+    </Canvas>
+  </div>
+  <div style={{height:412,display:'flex',flexDirection:'column',borderRadius:32,overflow:'hidden'}}>
+    <Canvas tone="lilac">
+      <SessionHeader index={1} total={18} secondsLeft={2100} />
+      <div style={{flex:1,minHeight:0}}>
+        <FlashcardItem flashcard={{kind:'pergunta_resposta',front:'Critério de julgamento padrão do pregão?',back:'Menor preço.'}} meta="Pergunta · Direito › Licitações" />
+      </div>
+    </Canvas>
+  </div>
+</div></>);
+</script>
+</body></html>

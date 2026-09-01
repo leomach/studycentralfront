@@ -1,0 +1,13 @@
+<!-- @dsCard group="Chrome" viewport="700x170" name="Motion + press" subtitle="90/150/240ms, snap easing, press scales to 0.97" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>html,body{margin:0}body{background:var(--cream);padding:16px;font-family:var(--font-sans);color:var(--text-strong)}
+a{color:var(--accent)}a:hover{color:var(--accent-press)}
+.sw{border-radius:var(--radius-md);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;min-height:92px}
+.sw b{font-family:var(--font-sans);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;display:block}
+.sw code{font-family:var(--font-mono);font-size:10px;opacity:0.7}
+.grid{display:grid;gap:10px}
+.lbl{font-family:var(--font-mono);font-size:11px;opacity:0.55}</style>
+</head><body><style>@keyframes studpress{0%,100%{transform:none}50%{transform:scale(0.97)}}</style>
+<div style="display:flex;gap:20px;align-items:center">
+<div style="animation:studpress 1.5s var(--ease-snap) infinite;background:var(--ink);color:var(--cream);border-radius:var(--radius-pill);padding:16px 28px;font-weight:800;font-size:16px">Estudar agora →</div>
+<div class="lbl" style="line-height:1.8">--dur-fast 90 · --dur 150 · --dur-slow 240<br>--ease-snap cubic-bezier(.2,.9,.25,1)<br>flat controls scale 0.97; sticker controls travel 3px</div></div></body></html>

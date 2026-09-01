@@ -22,6 +22,8 @@ import {
   type SessionStats,
 } from "@/components/sessao/SessionSummary";
 import { Button } from "@/components/ui/Button";
+import { Canvas } from "@/components/ui/Card";
+import { Face } from "@/components/ui/Face";
 
 interface Catalog {
   subjects: Subject[];
@@ -35,9 +37,9 @@ export default function EstudarPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted text-corpo">Preparando sessão…</p>
-        </div>
+        <Canvas tone="cream" className="items-center justify-center">
+          <p className="font-sans text-[15px] font-bold opacity-60">Preparando sessão…</p>
+        </Canvas>
       }
     >
       <Sessao />
@@ -211,24 +213,29 @@ function Sessao() {
   // ---- Render ----
   if (phase === "loading") {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-muted text-corpo">Preparando sessão…</p>
-      </div>
+      <Canvas tone="cream" className="items-center justify-center">
+        <p className="font-sans text-[15px] font-bold opacity-60">Preparando sessão…</p>
+      </Canvas>
     );
   }
 
   if (phase === "empty") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-enunciado text-ink">Fila vazia.</p>
-        <p className="text-corpo text-muted max-w-leitura">
-          Não há itens preparados para estudar offline. Abra o app com rede para
-          baixar a fila do dia.
-        </p>
-        <Button size="lg" onClick={() => router.push("/")}>
+      <Canvas tone="lilac" className="items-center justify-center gap-6 px-[var(--canvas-pad)] text-center">
+        <Face mood="sleepy" size={120} />
+        <div className="flex flex-col gap-2">
+          <h1 className="m-0 font-poster text-[40px] uppercase leading-[0.88] tracking-[-0.04em]">
+            Fila vazia
+          </h1>
+          <p className="max-w-[var(--measure-read)] font-sans text-[15px] font-semibold opacity-75">
+            Não há itens preparados para estudar offline. Abra o app com rede
+            para baixar a fila do dia.
+          </p>
+        </div>
+        <Button size="lg" variant="light" onClick={() => router.push("/")}>
           Voltar ao início
         </Button>
-      </div>
+      </Canvas>
     );
   }
 
@@ -236,8 +243,10 @@ function Sessao() {
     return <SessionSummary stats={stats.current} />;
   }
 
+  const isQuestion = !!current?.question;
+
   return (
-    <>
+    <Canvas tone={isQuestion ? "cream" : "lilac"}>
       <SessionHeader
         index={index}
         total={items.length}
@@ -245,7 +254,7 @@ function Sessao() {
         elapsed={elapsed}
         onExit={finish}
       />
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         {current?.question ? (
           <QuestionItem
             key={`q-${index}`}
@@ -266,6 +275,6 @@ function Sessao() {
           />
         ) : null}
       </div>
-    </>
+    </Canvas>
   );
 }

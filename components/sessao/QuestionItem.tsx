@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Confidence, Question } from "@/lib/api/types";
 import type { AttemptResult } from "@/lib/study/record";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Face } from "@/components/ui/Face";
 import { cn } from "@/lib/cn";
 
 interface Props {
@@ -27,14 +29,10 @@ const CONFIANCAS: { value: Confidence; label: string }[] = [
   { value: "chute", label: "Chutei" },
 ];
 
-export function QuestionItem({
-  question,
-  meta,
-  reasons,
-  onAnswer,
-  onCreateDraft,
-  onNext,
-}: Props) {
+// Uma questão na sessão: escolher → confiança → revelar (design system STUD
+// — components/study/QuestionItem.jsx). Renderiza sobre o Canvas cream que a
+// tela de sessão já monta em volta — não define fundo próprio.
+export function QuestionItem({ question, meta, reasons, onAnswer, onCreateDraft, onNext }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [draftMarked, setDraftMarked] = useState(false);
@@ -42,8 +40,8 @@ export function QuestionItem({
   const alternatives: Alt[] =
     question.format === "certo_errado"
       ? [
-          { value: "certo", label: "Certo", text: "Certo" },
-          { value: "errado", label: "Errado", text: "Errado" },
+          { value: "certo", label: "C", text: "Certo" },
+          { value: "errado", label: "E", text: "Errado" },
         ]
       : question.alternatives.map((alt) => ({
           value: alt.key,
@@ -66,50 +64,45 @@ export function QuestionItem({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       {/* MEIO: o item. Rola se necessário. */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4">
-        <p className="text-secundario text-muted">{meta}</p>
-        {reasons.length > 0 && (
-          <p className="text-rotulo text-muted mt-1">{reasons.join(" · ")}</p>
-        )}
-        <p className="text-enunciado text-ink mt-4 max-w-leitura">
+      <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-6 pt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="ink">questão</Badge>
+          {reasons.length > 0 && <Badge tone="light">{reasons.join(" · ")}</Badge>}
+        </div>
+        <p className="mt-3 font-mono text-[12px] opacity-55">{meta}</p>
+
+        <p
+          className="mt-5 max-w-[var(--measure-read)] font-display text-[24px] font-extrabold leading-[1.25] tracking-[-0.02em]"
+          style={{ textWrap: "pretty" }}
+        >
           {question.statement}
         </p>
 
-        <div className="mt-6 flex flex-col gap-3 pb-4">
+        <div className="mt-6 flex flex-col gap-3">
           {alternatives.map((alt) => {
-            const isCorrect =
-              phase === "revelado" && alt.value === result?.correct_answer;
-            const isWrongChoice =
-              phase === "revelado" &&
-              alt.value === selected &&
-              alt.value !== result?.correct_answer;
+            const isCorrect = phase === "revelado" && alt.value === result?.correct_answer;
+            const isWrong = phase === "revelado" && alt.value === selected && !isCorrect;
+            const picked = alt.value === selected;
             return (
               <button
                 key={alt.value}
                 disabled={phase !== "escolher"}
                 onClick={() => setSelected(alt.value)}
                 className={cn(
-                  "min-h-[56px] w-full text-left px-4 py-3 rounded-surface border text-corpo",
-                  "flex items-start gap-3 transition-colors",
-                  isCorrect && "border-correct text-correct bg-correct/5",
-                  isWrongChoice && "border-wrong text-wrong bg-wrong/5",
-                  !isCorrect &&
-                    !isWrongChoice &&
-                    alt.value === selected &&
-                    "border-accent",
-                  !isCorrect &&
-                    !isWrongChoice &&
-                    alt.value !== selected &&
-                    "border-rule text-ink",
+                  "flex min-h-[var(--tap-lg)] w-full items-start gap-3 rounded-md border-0 px-[18px] py-4 text-left",
+                  "font-sans text-[15px] font-bold leading-[1.45] transition-colors duration-fast ease-snap",
+                  phase === "escolher" ? "cursor-pointer" : "cursor-default",
+                  isCorrect && "bg-spring text-ink",
+                  isWrong && "bg-wrong text-white",
+                  !isCorrect && !isWrong && picked && "bg-[var(--ink)] text-cream",
+                  !isCorrect && !isWrong && !picked && "bg-white text-ink",
                 )}
               >
-                {question.format === "multipla_escolha" && (
-                  <span className="font-mono text-muted shrink-0">
-                    {alt.label}
-                  </span>
-                )}
+                <span className="flex-shrink-0 pt-0.5 font-mono text-[12px] font-semibold opacity-60">
+                  {alt.label}
+                </span>
                 <span>{alt.text}</span>
               </button>
             );
@@ -118,26 +111,17 @@ export function QuestionItem({
       </div>
 
       {/* RODAPÉ: ações na zona do polegar (§3). */}
-      <div className="shrink-0 px-4 pb-6 pt-3 border-t border-rule bg-paper">
+      <div className="flex-shrink-0 rounded-t-panel bg-white px-[var(--canvas-pad)] pb-6 pt-5 text-ink shadow-panel">
         {phase === "escolher" && (
-          <p className="text-secundario text-muted text-center py-2">
-            Toque na sua resposta.
-          </p>
+          <p className="text-center font-sans text-[14px] font-extrabold opacity-50">Toque na sua resposta.</p>
         )}
 
         {phase === "confianca" && (
-          <div className="flex flex-col gap-2">
-            <p className="text-secundario text-muted text-center">
-              Qual era sua confiança?
-            </p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col gap-3">
+            <p className="text-center font-sans text-[14px] font-extrabold opacity-50">Qual era sua confiança?</p>
+            <div className="flex flex-col gap-2">
               {CONFIANCAS.map((c) => (
-                <Button
-                  key={c.value}
-                  variant="secondary"
-                  size="lg"
-                  onClick={() => confirmarConfianca(c.value)}
-                >
+                <Button key={c.value} variant="outline" size="md" block onClick={() => confirmarConfianca(c.value)}>
                   {c.label}
                 </Button>
               ))}
@@ -146,26 +130,25 @@ export function QuestionItem({
         )}
 
         {phase === "revelado" && (
-          <div className="flex flex-col gap-3">
-            <p
-              className={cn(
-                "text-corpo font-medium text-center",
-                result?.is_correct ? "text-correct" : "text-wrong",
-              )}
-            >
-              {result?.is_correct ? "Você acertou" : "Você errou"}
-            </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <Face mood={result?.is_correct ? "happy" : "tough"} size={54} />
+              <span className="font-display text-[26px] font-black tracking-[-0.03em]">
+                {result?.is_correct ? "Você acertou" : "Você errou"}
+              </span>
+            </div>
             <div className="flex gap-2">
               <Button
-                variant="secondary"
+                variant="outline"
                 size="lg"
-                className="flex-1"
-                onClick={criarDraft}
+                block
                 disabled={draftMarked}
+                className="text-[14px]"
+                onClick={criarDraft}
               >
-                {draftMarked ? "Marcado ✓" : "Criar flashcard disso"}
+                {draftMarked ? "Marcado ✓" : "Criar flashcard"}
               </Button>
-              <Button size="lg" className="flex-1" onClick={onNext}>
+              <Button size="lg" block trailing="→" onClick={onNext}>
                 Avançar
               </Button>
             </div>

@@ -1,0 +1,77 @@
+/* Palette derived from the reference set: saturated full-bleed canvases,
+   near-black ink, one cream neutral. Every colour is flat — no gradients. */
+:root {
+  /* Ink + neutrals */
+  --ink: #111110;
+  --ink-soft: #3a3a36;
+  --ink-mute: #77776f;
+  --cream: #f5f1e6;
+  --cream-deep: #e8e2d2;
+  --grey-soft: #efefec;
+  --white: #ffffff;
+
+  /* Canvas colours (a whole screen is one of these) */
+  --coral: #f04a23;
+  --sun: #f5d53d;
+  --spring: #3cef8e;
+  --forest: #0e4a3c;
+  --lilac: #b9a0ff;
+  --bubblegum: #ffb0d3;
+  --sky: #3f8fd2;
+  --clay: #d98032;
+
+  /* Deeper stops for press states and type on light */
+  --coral-deep: #c9350f;
+  --spring-deep: #14c96a;
+  --forest-deep: #072e25;
+
+  /* Semantic surfaces */
+  --paper: var(--cream);
+  --surface: var(--white);
+  --surface-sunk: var(--grey-soft);
+  --surface-card: var(--white);
+  --surface-invert: var(--ink);
+  --canvas: var(--coral);
+
+  /* Semantic text */
+  --text-strong: var(--ink);
+  --text-body: var(--ink-soft);
+  --text-muted: var(--ink-mute);
+  --text-on-invert: var(--cream);
+  --text-on-canvas: var(--ink);
+
+  /* Semantic accents (roles inherited from the source app) */
+  --accent: var(--coral);
+  --accent-press: var(--coral-deep);
+  --correct: var(--spring-deep);
+  --wrong: #e03a2f;
+  --due: var(--sun);
+  --rule: var(--ink);
+
+  /* Washes — quiet fills behind body text */
+  --correct-wash: #ddfbe9;
+  --wrong-wash: #fce3df;
+  --due-wash: #fdf4cf;
+  --accent-wash: #fde3da;
+  --lilac-wash: #efe8ff;
+}
+
+:root[data-theme="dark"], .stud-dark {
+  --paper: #17171a;
+  --surface: #212126;
+  --surface-sunk: #101012;
+  --surface-card: #212126;
+  --surface-invert: var(--cream);
+
+  --text-strong: #f7f5ee;
+  --text-body: #ded9cd;
+  --text-muted: #918d84;
+  --text-on-invert: var(--ink);
+
+  --rule: #f7f5ee;
+  --correct-wash: #10301f;
+  --wrong-wash: #33150f;
+  --due-wash: #302607;
+  --accent-wash: #331309;
+  --lilac-wash: #221b33;
+}

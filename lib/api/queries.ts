@@ -4,7 +4,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./client";
+import { useSession } from "@/lib/auth/hooks";
 import type {
+  AuthUser,
   Banca,
   DashboardOverview,
   Exam,
@@ -17,6 +19,7 @@ import type {
 } from "./types";
 
 export const qk = {
+  me: ["me"] as const,
   subjects: ["subjects"] as const,
   bancas: ["bancas"] as const,
   exams: ["exams"] as const,
@@ -26,6 +29,19 @@ export const qk = {
   queue: (minutes: number) => ["queue", minutes] as const,
   dashboard: ["dashboard"] as const,
 };
+
+/** Nome/email/plano reais de quem está logado — só busca com sessão premium
+ * de verdade (senão é 403 certo, e o AuthGate já bloqueia esse caso). */
+export function useMe() {
+  const session = useSession();
+  const enabled = session.status === "authenticated" && session.plan === "premium";
+  return useQuery({
+    queryKey: qk.me,
+    queryFn: () => apiGet<AuthUser>("/api/me"),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
 
 // subject_id, banca_id, exam_id e format são filtros reais no backend
 // (colunas indexadas). "year" e "status" (nunca_respondida/errei/acertei_chute)

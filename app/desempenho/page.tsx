@@ -3,39 +3,10 @@
 import { useMemo } from "react";
 import { useBancas, useDashboard, useExams } from "@/lib/api/queries";
 import type { ExamAccuracy } from "@/lib/api/types";
-
-// Barra horizontal simples (§6.6): sem gráfico elaborado. A cor da barra é
-// neutra (accent) — as cores funcionais ficam reservadas para estado.
-function AccuracyBar({
-  label,
-  accuracy,
-  attempts,
-  correct,
-}: {
-  label: string;
-  accuracy: number; // 0..1
-  attempts: number;
-  correct: number;
-}) {
-  const p = Math.round(accuracy * 100);
-  return (
-    <div className="py-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-secundario text-ink">{label}</span>
-        <span className="font-mono text-secundario text-muted tabular-nums">
-          {p}% · {correct}/{attempts}
-        </span>
-      </div>
-      <div className="mt-1 h-2 w-full bg-rule rounded-full overflow-hidden">
-        <div
-          className="h-full bg-accent"
-          style={{ width: `${p}%` }}
-          aria-hidden
-        />
-      </div>
-    </div>
-  );
-}
+import { Canvas, Card } from "@/components/ui/Card";
+import { AccuracyBar } from "@/components/ui/ProgressBar";
+import { StatBox } from "@/components/ui/StatBlock";
+import { AppNav } from "@/components/AppNav";
 
 export default function DesempenhoPage() {
   const { data, isLoading } = useDashboard();
@@ -69,113 +40,76 @@ export default function DesempenhoPage() {
 
   if (isLoading || !data) {
     return (
-      <main className="mx-auto max-w-3xl px-4 pt-6">
-        <p className="text-muted text-corpo">Carregando…</p>
-      </main>
+      <Canvas tone="forest" className="min-h-dvh text-cream">
+        <AppNav title="Últimos 30 dias" />
+        <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-70">Carregando…</p>
+      </Canvas>
     );
   }
 
   // Pior → melhor: a informação mais acionável do app (§6.6).
   const bySubject = [...data.subjects].sort((a, b) => a.accuracy - b.accuracy);
-
   const fc = data.flashcards;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pt-6 pb-16 flex flex-col gap-10">
-      <h1 className="text-enunciado text-ink">Desempenho</h1>
+    <Canvas tone="forest" className="min-h-dvh text-cream">
+      <AppNav title="Últimos 30 dias" />
 
-      <section>
-        <h2 className="text-corpo font-medium text-ink mb-2">
-          Acerto por eixo temático
-        </h2>
-        <p className="text-rotulo text-muted mb-2">Do pior para o melhor.</p>
-        <div className="divide-y divide-rule">
-          {bySubject.map((s) => (
-            <AccuracyBar
-              key={s.subject_id}
-              label={s.subject_name}
-              accuracy={s.accuracy}
-              attempts={s.attempts}
-              correct={s.correct}
-            />
-          ))}
-        </div>
-      </section>
+      <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
+        <h1 className="m-0 font-poster text-[40px] uppercase leading-[0.88] tracking-[-0.04em]">Seu desempenho</h1>
 
-      <section className="grid gap-8 sm:grid-cols-2">
-        <div>
-          <h2 className="text-corpo font-medium text-ink mb-2">Por concurso</h2>
-          <div className="divide-y divide-rule">
-            {data.exams.map((e: ExamAccuracy) => (
-              <AccuracyBar
-                key={e.exam_id}
-                label={e.exam_name}
-                accuracy={e.accuracy}
-                attempts={e.attempts}
-                correct={e.correct}
-              />
+        <Card tone="surface" radius="lg" className="mt-6">
+          <h2 className="m-0 font-sans text-[15px] font-black">Acerto por eixo temático</h2>
+          <p className="mt-1 font-sans text-[13px] font-semibold opacity-55">Do pior para o melhor.</p>
+          <div className="mt-1">
+            {bySubject.map((s) => (
+              <AccuracyBar key={s.subject_id} label={s.subject_name} correct={s.correct} answered={s.attempts} />
             ))}
           </div>
-        </div>
-        <div>
-          <h2 className="text-corpo font-medium text-ink mb-2">Por banca</h2>
-          <div className="divide-y divide-rule">
-            {byBanca.map((b) => (
-              <AccuracyBar
-                key={b.banca_id}
-                label={b.banca_name}
-                accuracy={b.accuracy}
-                attempts={b.attempts}
-                correct={b.correct}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+        </Card>
 
-      <section>
-        <h2 className="text-corpo font-medium text-ink mb-2">Volume</h2>
-        <div className="flex gap-8">
-          <div>
-            <p className="font-mono text-numero text-ink">
-              {data.volume.last_7_days}
-            </p>
-            <p className="text-rotulo text-muted">questões / 7 dias</p>
-          </div>
-          <div>
-            <p className="font-mono text-numero text-ink">
-              {data.volume.last_30_days}
-            </p>
-            <p className="text-rotulo text-muted">questões / 30 dias</p>
-          </div>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Card tone="surface" radius="lg">
+            <h2 className="m-0 font-sans text-[15px] font-black">Por concurso</h2>
+            <div className="mt-1">
+              {data.exams.map((e: ExamAccuracy) => (
+                <AccuracyBar key={e.exam_id} label={e.exam_name} correct={e.correct} answered={e.attempts} />
+              ))}
+            </div>
+          </Card>
+          <Card tone="surface" radius="lg">
+            <h2 className="m-0 font-sans text-[15px] font-black">Por banca</h2>
+            <div className="mt-1">
+              {byBanca.map((b) => (
+                <AccuracyBar key={b.banca_id} label={b.banca_name} correct={b.correct} answered={b.attempts} />
+              ))}
+            </div>
+          </Card>
         </div>
-        {/* Série diária (gráfico de barras por dia) saiu do v1: o backend só
-            expõe totais de 7/30 dias, não contagem por dia — exigiria uma
-            nova query agregada. Ver auditoria de 2026-09-01. */}
-      </section>
 
-      <section>
-        <h2 className="text-corpo font-medium text-ink mb-3">
-          Saúde dos flashcards
-        </h2>
-        {/* Vencidos e maduros não são mutuamente exclusivos no backend (um
-            card maduro pode estar atrasado), então isto é dois números, não
-            uma barra proporcional de três fatias. */}
-        <div className="flex gap-8">
-          <div>
-            <p className="font-mono text-numero text-due">{fc.due}</p>
-            <p className="text-rotulo text-muted">vencidos</p>
+        <Card tone="surface" radius="lg" className="mt-6">
+          <h2 className="m-0 font-sans text-[15px] font-black">Volume</h2>
+          {/* Série diária (gráfico de barras por dia) saiu do v1: o backend só
+              expõe totais de 7/30 dias, não contagem por dia — exigiria uma
+              nova query agregada. Ver auditoria de 2026-09-01. */}
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <StatBox value={data.volume.last_7_days} label="questões / 7 dias" />
+            <StatBox value={data.volume.last_30_days} label="questões / 30 dias" />
           </div>
-          <div>
-            <p className="font-mono text-numero text-correct">{fc.mature}</p>
-            <p className="text-rotulo text-muted">maduros</p>
+        </Card>
+
+        <Card tone="surface" radius="lg" className="mt-6">
+          <h2 className="m-0 font-sans text-[15px] font-black">Saúde dos flashcards</h2>
+          {/* Vencidos e maduros não são mutuamente exclusivos no backend (um
+              card maduro pode estar atrasado), então isto é três números, não
+              uma barra proporcional. */}
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <StatBox tone="sun" value={fc.due} label="vencidos" />
+            <StatBox tone="spring" value={fc.mature} label="maduros" />
+            <StatBox value={fc.total} label="total" />
           </div>
-          <div>
-            <p className="font-mono text-numero text-ink">{fc.total}</p>
-            <p className="text-rotulo text-muted">total</p>
-          </div>
-        </div>
-      </section>
-    </main>
+        </Card>
+      </div>
+    </Canvas>
   );
 }

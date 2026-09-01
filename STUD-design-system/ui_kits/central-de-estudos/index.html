@@ -1,0 +1,30 @@
+<!-- @dsCard group="App — Central de Estudos" viewport="430x900" name="Central de Estudos (PWA)" subtitle="Clickable recreation: início, sessão, questões, flashcards, desempenho, catálogo" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Central de Estudos — STUD UI kit</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0;height:100%}
+body{background:var(--cream-deep);display:grid;place-items:start center;padding:18px;font-family:var(--font-sans);color:var(--ink)}
+a{color:var(--accent)}a:hover{color:var(--accent-press)}
+#frame{position:relative;width:390px;height:844px;display:flex;flex-direction:column;overflow:hidden;background:var(--cream);border-radius:44px;box-shadow:0 24px 60px rgba(17,17,16,0.22)}</style>
+</head><body>
+<div id="frame"><div id="root" style="flex:1;min-height:0;display:flex;flex-direction:column"></div></div>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="shell.jsx"></script>
+<script type="text/babel" src="onboarding-screen.jsx"></script>
+<script type="text/babel" src="auth-screen.jsx"></script>
+<script type="text/babel" src="profile-screen.jsx"></script>
+<script type="text/babel" src="home-screen.jsx"></script>
+<script type="text/babel" src="questoes-screen.jsx"></script>
+<script type="text/babel" src="flashcards-screen.jsx"></script>
+<script type="text/babel" src="desempenho-screen.jsx"></script>
+<script type="text/babel" src="catalogo-screen.jsx"></script>
+<script type="text/babel" src="session-screen.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel" data-presets="react">
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body></html>

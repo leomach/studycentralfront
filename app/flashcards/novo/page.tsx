@@ -10,6 +10,8 @@ import type { FlashcardKind } from "@/lib/api/types";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
+import { Canvas } from "@/components/ui/Card";
+import { AppNav, AppNavBackButton } from "@/components/AppNav";
 import { subjectPath } from "@/lib/format";
 
 export default function NovoFlashcardPage() {
@@ -20,6 +22,8 @@ export default function NovoFlashcardPage() {
   );
 }
 
+// Tela de criação vive num canvas lilás — a mesma cor que marca "flashcard"
+// em toda a sessão (design system STUD).
 function NovoFlashcard() {
   const router = useRouter();
   const params = useSearchParams();
@@ -63,59 +67,55 @@ function NovoFlashcard() {
   };
 
   return (
-    <main className="mx-auto max-w-leitura px-4 pt-6 pb-16 flex flex-col gap-4">
-      <h1 className="text-enunciado text-ink">Novo flashcard</h1>
+    <Canvas tone="lilac" className="min-h-dvh">
+      <AppNav title="Novo flashcard" action={<AppNavBackButton onClick={() => router.back()} />} />
 
-      <Select
-        label="Tipo"
-        options={[
-          { value: "pergunta_resposta", label: "Pergunta / resposta" },
-          { value: "resumo", label: "Resumo" },
-        ]}
-        value={kind}
-        onChange={(e) => setKind(e.target.value as FlashcardKind)}
-      />
+      <div className="flex-1 overflow-y-auto px-[var(--canvas-pad)] pb-16">
+        <div className="flex flex-col gap-4">
+          <Select
+            label="Tipo"
+            options={[
+              { value: "pergunta_resposta", label: "Pergunta / resposta" },
+              { value: "resumo", label: "Resumo" },
+            ]}
+            value={kind}
+            onChange={(e) => setKind(e.target.value as FlashcardKind)}
+          />
 
-      <Select
-        label="Eixo temático"
-        placeholder="Selecione"
-        options={(subjects.data ?? []).map((s) => ({
-          value: String(s.id),
-          label: subjectPath(s.id, subjects.data ?? []),
-        }))}
-        value={subjectId}
-        onChange={(e) => setSubjectId(e.target.value)}
-      />
+          <Select
+            label="Eixo temático"
+            placeholder="Selecione"
+            options={(subjects.data ?? []).map((s) => ({
+              value: String(s.id),
+              label: subjectPath(s.id, subjects.data ?? []),
+            }))}
+            value={subjectId}
+            onChange={(e) => setSubjectId(e.target.value)}
+          />
 
-      <Textarea
-        label={kind === "resumo" ? "Título" : "Frente (pergunta)"}
-        value={front}
-        onChange={(e) => setFront(e.target.value)}
-        rows={3}
-      />
-      <Textarea
-        label={kind === "resumo" ? "Conteúdo" : "Verso (resposta)"}
-        value={back}
-        onChange={(e) => setBack(e.target.value)}
-        rows={5}
-      />
+          <Textarea
+            label={kind === "resumo" ? "Título" : "Frente (pergunta)"}
+            value={front}
+            onChange={(e) => setFront(e.target.value)}
+            rows={3}
+          />
+          <Textarea
+            label={kind === "resumo" ? "Conteúdo" : "Verso (resposta)"}
+            value={back}
+            onChange={(e) => setBack(e.target.value)}
+            rows={5}
+          />
 
-      <div className="flex gap-2 mt-2">
-        <Button
-          variant="secondary"
-          className="flex-1"
-          onClick={() => router.back()}
-        >
-          Cancelar
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={save}
-          disabled={!canSave || create.isPending}
-        >
-          {create.isPending ? "Salvando…" : "Salvar"}
-        </Button>
+          <div className="mt-2 flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => router.back()}>
+              Cancelar
+            </Button>
+            <Button variant="ink" className="flex-1" onClick={save} disabled={!canSave || create.isPending}>
+              {create.isPending ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
+        </div>
       </div>
-    </main>
+    </Canvas>
   );
 }

@@ -1,0 +1,15 @@
+<!-- @dsCard group="Components" viewport="700x220" name="WeekStrip" subtitle="Seven-day check-in with sticker faces" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0}body{background:var(--white);padding:20px;font-family:var(--font-sans);color:var(--text-strong)}a{color:var(--accent)}a:hover{color:var(--accent-press)}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { WeekStrip } = window.STUDDesignSystem_29ef30;
+const Row = ({children, gap=10, wrap=true, align='center'}) => <div style={{display:'flex',flexWrap:wrap?'wrap':'nowrap',gap,alignItems:align}}>{children}</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<>
+<WeekStrip days={[{mood:'happy',tone:'spring'},{mood:'tough',tone:'sun'},{mood:'happy',tone:'spring'},{mood:'focus',tone:'lilac'},null,null,null]} caption="Você estudou 4 dias nesta semana" /></>);
+</script>
+</body></html>

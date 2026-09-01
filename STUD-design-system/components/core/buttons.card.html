@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" viewport="700x220" name="Button" subtitle="Flat pills; ink on light, white on colour" -->
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>html,body{margin:0}body{background:var(--cream);padding:18px;font-family:var(--font-sans);color:var(--text-strong)}a{color:var(--accent)}a:hover{color:var(--accent-press)}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { Button } = window.STUDDesignSystem_29ef30;
+const Row = ({children, gap=10, wrap=true, align='center'}) => <div style={{display:'flex',flexWrap:wrap?'wrap':'nowrap',gap,alignItems:align}}>{children}</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<>
+<Row><Button trailing="→">Estudar agora</Button><Button variant="spring">Revisei</Button><Button variant="sun">Difícil</Button><Button variant="lilac">Adiantar</Button><Button variant="outline">Descartar</Button><Button variant="ghost">Limpar</Button></Row>
+<div style={{height:14}} />
+<div style={{background:'var(--coral)',borderRadius:'var(--radius-lg)',padding:16}}><Row><Button variant="light" size="lg" trailing="→">Estudar 40 minutos</Button><Button variant="ink" size="lg">Ver fila</Button></Row></div>
+<div style={{height:14}} />
+<Row align="flex-end"><Button size="sm">38</Button><Button size="md">44</Button><Button size="lg">56</Button><Button size="xl">68</Button><Button sticker>sticker</Button><Button disabled>off</Button></Row></>);
+</script>
+</body></html>
