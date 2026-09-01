@@ -9,9 +9,14 @@ import { mockApi } from "./mocks";
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 export const USING_MOCK = BASE === "";
 
+// Espelha platform.ErrorKind do backend Go: toda falha responde
+// {"error": "...", "code": "invalid"|"not_found"|"conflict"}.
+export type ApiErrorCode = "invalid" | "not_found" | "conflict" | "internal";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
+    public code: ApiErrorCode,
     message: string,
   ) {
     super(message);
@@ -30,7 +35,14 @@ async function real<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    throw new ApiError(res.status, `${method} ${path} → ${res.status}`);
+    const parsed = await res
+      .json()
+      .catch(() => null as { error?: string; code?: ApiErrorCode } | null);
+    throw new ApiError(
+      res.status,
+      parsed?.code ?? "internal",
+      parsed?.error ?? `${method} ${path} → ${res.status}`,
+    );
   }
   // 204 sem corpo.
   if (res.status === 204) return undefined as T;

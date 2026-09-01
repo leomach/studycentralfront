@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useDashboard } from "@/lib/api/queries";
+import { db } from "@/lib/db/schema";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { pctFromRatio } from "@/lib/format";
 
 const DURACOES = [
   { minutes: 20, label: "20 min" },
@@ -23,21 +24,44 @@ function MonoStat({ value, label }: { value: string; label: string }) {
   );
 }
 
+// Acerto geral, calculado a partir do all-time acumulado por eixo — o backend
+// não tem uma janela de 7 dias (só volume, não acerto, é recortado por
+// período). Ver auditoria de 2026-09-01: substituir por um valor real de 7
+// dias exigiria uma nova query agregada no dashboard Go.
+function accuracyOverall(data: ReturnType<typeof useDashboard>["data"]) {
+  if (!data) return null;
+  const totals = data.subjects.reduce(
+    (acc, s) => ({ attempts: acc.attempts + s.attempts, correct: acc.correct + s.correct }),
+    { attempts: 0, correct: 0 },
+  );
+  if (totals.attempts === 0) return null;
+  return Math.round((totals.correct / totals.attempts) * 100);
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { data, isLoading } = useDashboard();
   // 40 minutos é o bloco real do usuário e o padrão (§6.1).
   const [minutes, setMinutes] = useState(40);
 
+  // Questões sugeridas: contadas na fila já prefetchada localmente, não no
+  // dashboard (que não expõe esse número) — e funciona mesmo offline.
+  const sugeridas =
+    useLiveQuery(
+      async () => (await db().queue.toArray()).filter((i) => i.kind === "questao").length,
+      [],
+      0,
+    ) ?? 0;
+
   const iniciar = () => {
     const q = minutes > 0 ? `?minutes=${minutes}` : "?minutes=0";
     router.push(`/estudar${q}`);
   };
 
-  const due = data?.due_today ?? 0;
-  const sugeridas = data?.suggested_questions ?? 0;
+  const due = data?.flashcards.due ?? 0;
   const pendentes = due + sugeridas;
   const nadaVencido = !isLoading && due === 0;
+  const acerto = accuracyOverall(data);
 
   return (
     <main className="mx-auto max-w-leitura px-4 pt-8 pb-16 flex flex-col gap-8">
@@ -93,19 +117,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Três números discretos em mono (§6.1). */}
+      {/* Dois números discretos em mono (§6.1). "Dias seguidos" saiu do v1: o
+          backend não guarda granularidade diária para calcular sequência —
+          ver auditoria de 2026-09-01. */}
       <section className="flex items-start justify-between px-1">
         <MonoStat
-          value={String(data?.streak_days ?? 0)}
-          label="dias seguidos"
-        />
-        <MonoStat
-          value={String(data?.questions_last_7d ?? 0)}
+          value={String(data?.volume.last_7_days ?? 0)}
           label="questões / 7 d"
         />
         <MonoStat
-          value={`${data ? pctFromRatio(data.accuracy_last_7d) : 0}%`}
-          label="acerto / 7 d"
+          value={acerto !== null ? `${acerto}%` : "—"}
+          label="acerto geral"
         />
       </section>
     </main>

@@ -32,7 +32,7 @@ export async function recordAttempt(
   const clientId = newClientId();
   await enqueue(
     `/api/questions/${q.id}/attempts`,
-    { given_answer: givenAnswer, confidence, client_id: clientId },
+    { answer: givenAnswer, confidence, client_id: clientId },
     clientId,
   );
   notifySyncChange();
@@ -76,7 +76,7 @@ export async function recordReview(
       reps: next.reps,
       lapses: next.lapses,
       due_date: nextDueDate(next.interval_days, now).toISOString(),
-      last_reviewed_at: now.toISOString(),
+      last_grade: grade,
     },
   };
 

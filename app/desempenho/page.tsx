@@ -1,27 +1,29 @@
 "use client";
 
-import { useDashboard } from "@/lib/api/queries";
-import type { NamedAccuracy, SubjectAccuracy } from "@/lib/api/types";
-import { pct } from "@/lib/format";
+import { useMemo } from "react";
+import { useBancas, useDashboard, useExams } from "@/lib/api/queries";
+import type { ExamAccuracy } from "@/lib/api/types";
 
 // Barra horizontal simples (§6.6): sem gráfico elaborado. A cor da barra é
 // neutra (accent) — as cores funcionais ficam reservadas para estado.
 function AccuracyBar({
   label,
+  accuracy,
+  attempts,
   correct,
-  answered,
 }: {
   label: string;
+  accuracy: number; // 0..1
+  attempts: number;
   correct: number;
-  answered: number;
 }) {
-  const p = pct(correct, answered);
+  const p = Math.round(accuracy * 100);
   return (
     <div className="py-2">
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-secundario text-ink">{label}</span>
         <span className="font-mono text-secundario text-muted tabular-nums">
-          {p}% · {correct}/{answered}
+          {p}% · {correct}/{attempts}
         </span>
       </div>
       <div className="mt-1 h-2 w-full bg-rule rounded-full overflow-hidden">
@@ -37,6 +39,33 @@ function AccuracyBar({
 
 export default function DesempenhoPage() {
   const { data, isLoading } = useDashboard();
+  const bancas = useBancas();
+  const exams = useExams();
+
+  // Acerto por banca não existe como agregado no backend — só por concurso.
+  // É derivado aqui juntando exams[] (acerto por concurso) com o catálogo de
+  // concursos já cacheado, para saber a banca de cada um. Ver auditoria de
+  // 2026-09-01.
+  const byBanca = useMemo(() => {
+    if (!data || !exams.data) return [];
+    const bancaIdByExam = new Map(exams.data.map((e) => [e.id, e.banca_id]));
+    const totals = new Map<number, { attempts: number; correct: number }>();
+    for (const e of data.exams) {
+      const bancaId = bancaIdByExam.get(e.exam_id);
+      if (bancaId === undefined) continue;
+      const acc = totals.get(bancaId) ?? { attempts: 0, correct: 0 };
+      acc.attempts += e.attempts;
+      acc.correct += e.correct;
+      totals.set(bancaId, acc);
+    }
+    return Array.from(totals.entries()).map(([bancaId, t]) => ({
+      banca_id: bancaId,
+      banca_name: bancas.data?.find((b) => b.id === bancaId)?.name ?? "—",
+      attempts: t.attempts,
+      correct: t.correct,
+      accuracy: t.attempts > 0 ? t.correct / t.attempts : 0,
+    }));
+  }, [data, exams.data, bancas.data]);
 
   if (isLoading || !data) {
     return (
@@ -47,19 +76,9 @@ export default function DesempenhoPage() {
   }
 
   // Pior → melhor: a informação mais acionável do app (§6.6).
-  const bySubject = [...data.accuracy_by_subject].sort(
-    (a: SubjectAccuracy, b: SubjectAccuracy) =>
-      pct(a.correct, a.answered) - pct(b.correct, b.answered),
-  );
+  const bySubject = [...data.subjects].sort((a, b) => a.accuracy - b.accuracy);
 
-  const maxVolume = Math.max(
-    1,
-    ...data.volume_30d.map((v) => v.questions + v.reviews),
-  );
-
-  const health = data.flashcard_health;
-  const healthTotal =
-    health.vencido + health.aprendizado + health.maduro || 1;
+  const fc = data.flashcards;
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-16 flex flex-col gap-10">
@@ -75,8 +94,9 @@ export default function DesempenhoPage() {
             <AccuracyBar
               key={s.subject_id}
               label={s.subject_name}
+              accuracy={s.accuracy}
+              attempts={s.attempts}
               correct={s.correct}
-              answered={s.answered}
             />
           ))}
         </div>
@@ -86,12 +106,13 @@ export default function DesempenhoPage() {
         <div>
           <h2 className="text-corpo font-medium text-ink mb-2">Por concurso</h2>
           <div className="divide-y divide-rule">
-            {data.accuracy_by_exam.map((e: NamedAccuracy) => (
+            {data.exams.map((e: ExamAccuracy) => (
               <AccuracyBar
-                key={e.id}
-                label={e.name}
+                key={e.exam_id}
+                label={e.exam_name}
+                accuracy={e.accuracy}
+                attempts={e.attempts}
                 correct={e.correct}
-                answered={e.answered}
               />
             ))}
           </div>
@@ -99,12 +120,13 @@ export default function DesempenhoPage() {
         <div>
           <h2 className="text-corpo font-medium text-ink mb-2">Por banca</h2>
           <div className="divide-y divide-rule">
-            {data.accuracy_by_banca.map((b: NamedAccuracy) => (
+            {byBanca.map((b) => (
               <AccuracyBar
-                key={b.id}
-                label={b.name}
+                key={b.banca_id}
+                label={b.banca_name}
+                accuracy={b.accuracy}
+                attempts={b.attempts}
                 correct={b.correct}
-                answered={b.answered}
               />
             ))}
           </div>
@@ -112,49 +134,46 @@ export default function DesempenhoPage() {
       </section>
 
       <section>
-        <h2 className="text-corpo font-medium text-ink mb-2">
-          Volume — últimos 30 dias
-        </h2>
-        <div className="flex items-end gap-0.5 h-24">
-          {data.volume_30d.map((v) => {
-            const total = v.questions + v.reviews;
-            return (
-              <div
-                key={v.date}
-                className="flex-1 bg-accent/70 rounded-t"
-                style={{ height: `${(total / maxVolume) * 100}%` }}
-                title={`${v.date}: ${v.questions}q · ${v.reviews}r`}
-              />
-            );
-          })}
+        <h2 className="text-corpo font-medium text-ink mb-2">Volume</h2>
+        <div className="flex gap-8">
+          <div>
+            <p className="font-mono text-numero text-ink">
+              {data.volume.last_7_days}
+            </p>
+            <p className="text-rotulo text-muted">questões / 7 dias</p>
+          </div>
+          <div>
+            <p className="font-mono text-numero text-ink">
+              {data.volume.last_30_days}
+            </p>
+            <p className="text-rotulo text-muted">questões / 30 dias</p>
+          </div>
         </div>
-        <p className="text-rotulo text-muted mt-2">
-          Questões respondidas + cards revisados por dia.
-        </p>
+        {/* Série diária (gráfico de barras por dia) saiu do v1: o backend só
+            expõe totais de 7/30 dias, não contagem por dia — exigiria uma
+            nova query agregada. Ver auditoria de 2026-09-01. */}
       </section>
 
       <section>
         <h2 className="text-corpo font-medium text-ink mb-3">
           Saúde dos flashcards
         </h2>
-        <div className="flex h-3 w-full rounded-full overflow-hidden bg-rule">
-          <div
-            className="bg-due"
-            style={{ width: `${(health.vencido / healthTotal) * 100}%` }}
-          />
-          <div
-            className="bg-muted"
-            style={{ width: `${(health.aprendizado / healthTotal) * 100}%` }}
-          />
-          <div
-            className="bg-correct"
-            style={{ width: `${(health.maduro / healthTotal) * 100}%` }}
-          />
-        </div>
-        <div className="mt-2 flex gap-4 text-rotulo">
-          <span className="text-due">Vencidos {health.vencido}</span>
-          <span className="text-muted">Em aprendizado {health.aprendizado}</span>
-          <span className="text-correct">Maduros {health.maduro}</span>
+        {/* Vencidos e maduros não são mutuamente exclusivos no backend (um
+            card maduro pode estar atrasado), então isto é dois números, não
+            uma barra proporcional de três fatias. */}
+        <div className="flex gap-8">
+          <div>
+            <p className="font-mono text-numero text-due">{fc.due}</p>
+            <p className="text-rotulo text-muted">vencidos</p>
+          </div>
+          <div>
+            <p className="font-mono text-numero text-correct">{fc.mature}</p>
+            <p className="text-rotulo text-muted">maduros</p>
+          </div>
+          <div>
+            <p className="font-mono text-numero text-ink">{fc.total}</p>
+            <p className="text-rotulo text-muted">total</p>
+          </div>
         </div>
       </section>
     </main>

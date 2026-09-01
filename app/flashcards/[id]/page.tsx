@@ -11,7 +11,7 @@ export default function FlashcardDetalhePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: cards = [] } = useFlashcards({});
+  const { data: cards = [] } = useFlashcards();
   const subjects = useSubjects();
   const fc = useMemo(() => cards.find((c) => c.id === Number(id)), [cards, id]);
 

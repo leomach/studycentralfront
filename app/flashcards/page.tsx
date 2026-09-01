@@ -3,11 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-  useFlashcards,
-  useSubjects,
-  type FlashcardFilter,
-} from "@/lib/api/queries";
+import { useFlashcards, useSubjects } from "@/lib/api/queries";
 import type { Flashcard, FlashcardState } from "@/lib/api/types";
 import { db } from "@/lib/db/schema";
 import { removeDraft } from "@/lib/db/outbox";
@@ -37,9 +33,18 @@ function estadoLabel(fc: Flashcard): FlashcardState {
 }
 
 export default function FlashcardsPage() {
-  const [filter, setFilter] = useState<FlashcardFilter>({});
+  const [subjectId, setSubjectId] = useState<number | undefined>(undefined);
+  const [state, setState] = useState<FlashcardState | "">("");
   const subjects = useSubjects();
-  const { data: cards = [], isLoading } = useFlashcards(filter);
+  const { data: allCards = [], isLoading } = useFlashcards(subjectId);
+
+  // O backend não filtra por estado (vencido/aprendizado/maduro) — ele é
+  // derivado de `review`, que já vem embutido em cada card, então o filtro é
+  // só uma seleção local sobre a lista já buscada.
+  const cards = useMemo(
+    () => (state ? allCards.filter((fc) => estadoLabel(fc) === state) : allCards),
+    [allCards, state],
+  );
 
   // Fila de rascunhos, alimentada durante a sessão (§6.4). Vem do Dexie local.
   const drafts = useLiveQuery(
@@ -105,26 +110,16 @@ export default function FlashcardsPage() {
           label="Eixo"
           placeholder="Todos"
           options={subjectOptions}
-          value={filter.subject_id ? String(filter.subject_id) : ""}
+          value={subjectId ? String(subjectId) : ""}
           onChange={(e) =>
-            setFilter((f) => ({
-              ...f,
-              subject_id: e.target.value ? Number(e.target.value) : undefined,
-            }))
+            setSubjectId(e.target.value ? Number(e.target.value) : undefined)
           }
         />
         <Select
           label="Estado"
           options={ESTADOS}
-          value={filter.state ?? ""}
-          onChange={(e) =>
-            setFilter((f) => ({
-              ...f,
-              state: (e.target.value || undefined) as
-                | FlashcardState
-                | undefined,
-            }))
-          }
+          value={state}
+          onChange={(e) => setState(e.target.value as FlashcardState | "")}
         />
       </div>
 

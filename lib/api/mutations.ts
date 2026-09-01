@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiPost } from "./client";
 import { qk } from "./queries";
 import type {
+  Alternative,
   Banca,
   Exam,
   Flashcard,
@@ -17,14 +18,16 @@ import type {
   Subject,
 } from "./types";
 
+// Sem exam_year: o ano vive em Exam, não em Question (o backend não tem essa
+// coluna). alternatives é {key,text}[] — key é o valor comparado contra
+// correct_answer, não a posição na lista.
 export interface QuestionInput {
   subject_id: ID;
   banca_id: ID | null;
   exam_id: ID | null;
-  exam_year: number | null;
   format: QuestionFormat;
   statement: string;
-  alternatives: string[];
+  alternatives: Alternative[];
   correct_answer: string;
 }
 

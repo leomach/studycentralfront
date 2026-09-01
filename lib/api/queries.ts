@@ -9,9 +9,9 @@ import type {
   DashboardOverview,
   Exam,
   Flashcard,
-  FlashcardState,
   ID,
   Question,
+  QuestionFormat,
   StudyQueue,
   Subject,
 } from "./types";
@@ -22,23 +22,21 @@ export const qk = {
   exams: ["exams"] as const,
   questions: (f: QuestionFilter) => ["questions", f] as const,
   question: (id: ID) => ["question", id] as const,
-  flashcards: (f: FlashcardFilter) => ["flashcards", f] as const,
+  flashcards: (subjectId?: ID) => ["flashcards", subjectId ?? null] as const,
   queue: (minutes: number) => ["queue", minutes] as const,
   dashboard: ["dashboard"] as const,
 };
 
+// subject_id, banca_id, exam_id e format são filtros reais no backend
+// (colunas indexadas). "year" e "status" (nunca_respondida/errei/acertei_chute)
+// não são: o primeiro exigiria join com exams, o segundo agregação de
+// attempts — nenhum dos dois existe hoje, então não aparecem aqui em vez de
+// serem enviados e silenciosamente ignorados pelo servidor.
 export interface QuestionFilter {
   subject_id?: ID;
   banca_id?: ID;
   exam_id?: ID;
-  year?: number;
-  format?: string;
-  status?: string; // nunca_respondida | errei | acertei_chute
-}
-
-export interface FlashcardFilter {
-  subject_id?: ID;
-  state?: FlashcardState;
+  format?: QuestionFormat;
 }
 
 function toQuery(params: Record<string, unknown> | object): string {
@@ -89,10 +87,16 @@ export function useQuestion(id: ID) {
   });
 }
 
-export function useFlashcards(filter: FlashcardFilter) {
+// O estado (vencido/aprendizado/maduro) é derivado no cliente a partir de
+// `review` — o backend não filtra por ele, então o filtro fica de fora daqui
+// e vira responsabilidade de quem consome a lista (app/flashcards/page.tsx).
+export function useFlashcards(subjectId?: ID) {
   return useQuery({
-    queryKey: qk.flashcards(filter),
-    queryFn: () => apiGet<Flashcard[]>(`/api/flashcards${toQuery(filter)}`),
+    queryKey: qk.flashcards(subjectId),
+    queryFn: () =>
+      apiGet<Flashcard[]>(
+        `/api/flashcards${toQuery({ subject_id: subjectId })}`,
+      ),
   });
 }
 

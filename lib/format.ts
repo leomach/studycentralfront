@@ -6,10 +6,6 @@ export function pct(correct: number, answered: number): number {
   return Math.round((correct / answered) * 100);
 }
 
-export function pctFromRatio(ratio: number): number {
-  return Math.round(ratio * 100);
-}
-
 /** "mm:ss" para o cronômetro regressivo, a partir de segundos. */
 export function mmss(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));

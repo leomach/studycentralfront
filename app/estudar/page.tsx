@@ -163,7 +163,8 @@ function Sessao() {
         ? q.correct_answer === "certo"
           ? "Certo"
           : "Errado"
-        : q.alternatives[Number(q.correct_answer)] ?? "";
+        : (q.alternatives.find((a) => a.key === q.correct_answer)?.text ??
+          "");
     void addDraft({
       subject_id: q.subject_id,
       source_question_id: q.id,
@@ -194,9 +195,10 @@ function Sessao() {
     if (current.question) {
       const q = current.question;
       const banca = catalog.bancas.find((b) => b.id === q.banca_id)?.name;
+      const year = catalog.exams.find((e) => e.id === q.exam_id)?.year;
       const parts = [
         banca,
-        q.exam_year ? String(q.exam_year) : undefined,
+        year ? String(year) : undefined,
         subjectPath(q.subject_id, catalog.subjects),
       ].filter(Boolean);
       return parts.join(" · ");

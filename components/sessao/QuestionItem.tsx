@@ -27,8 +27,6 @@ const CONFIANCAS: { value: Confidence; label: string }[] = [
   { value: "chute", label: "Chutei" },
 ];
 
-const LETTERS = ["A", "B", "C", "D", "E"];
-
 export function QuestionItem({
   question,
   meta,
@@ -47,10 +45,10 @@ export function QuestionItem({
           { value: "certo", label: "Certo", text: "Certo" },
           { value: "errado", label: "Errado", text: "Errado" },
         ]
-      : question.alternatives.map((text, i) => ({
-          value: String(i),
-          label: LETTERS[i],
-          text,
+      : question.alternatives.map((alt) => ({
+          value: alt.key,
+          label: alt.key.toUpperCase(),
+          text: alt.text,
         }));
 
   const phase: "escolher" | "confianca" | "revelado" =

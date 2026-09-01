@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useBancas, useQuestion, useSubjects } from "@/lib/api/queries";
+import { useBancas, useExams, useQuestion, useSubjects } from "@/lib/api/queries";
 import { subjectPath } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -15,6 +15,7 @@ export default function QuestaoDetalhePage({
   const { data: q, isLoading } = useQuestion(Number(id));
   const subjects = useSubjects();
   const bancas = useBancas();
+  const exams = useExams();
 
   if (isLoading) {
     return (
@@ -37,7 +38,7 @@ export default function QuestaoDetalhePage({
 
   const meta = [
     bancas.data?.find((b) => b.id === q.banca_id)?.name,
-    q.exam_year,
+    exams.data?.find((e) => e.id === q.exam_id)?.year,
     subjectPath(q.subject_id, subjects.data ?? []),
   ]
     .filter(Boolean)
@@ -51,7 +52,7 @@ export default function QuestaoDetalhePage({
           { value: "certo", text: "Certo" },
           { value: "errado", text: "Errado" },
         ]
-      : q.alternatives.map((text, i) => ({ value: String(i), text }));
+      : q.alternatives.map((a) => ({ value: a.key, text: a.text }));
 
   return (
     <main className="mx-auto max-w-leitura px-4 pt-6 pb-16">
@@ -62,7 +63,7 @@ export default function QuestaoDetalhePage({
       <p className="text-enunciado text-ink mt-3">{q.statement}</p>
 
       <ul className="mt-6 flex flex-col gap-2">
-        {alts.map((a, i) => (
+        {alts.map((a) => (
           <li
             key={a.value}
             className={cn(
@@ -74,7 +75,7 @@ export default function QuestaoDetalhePage({
           >
             {q.format === "multipla_escolha" && (
               <span className="font-mono text-muted">
-                {String.fromCharCode(65 + i)}
+                {a.value.toUpperCase()}
               </span>
             )}
             <span>{a.text}</span>

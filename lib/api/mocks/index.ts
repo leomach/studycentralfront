@@ -1,9 +1,12 @@
-// Roteador de mock PROVISÓRIO (CLAUDE.md §8). Emula os endpoints da §8 em
-// memória. Substituído assim que NEXT_PUBLIC_API_URL apontar para o Go real.
+// Roteador de mock PROVISÓRIO (CLAUDE.md §8). Emula o contrato real do
+// backend Go em memória — não a especificação original, o formato que o Go de
+// fato serializa (ver auditoria de 2026-09-01). Substituído assim que
+// NEXT_PUBLIC_API_URL apontar para o backend de verdade.
 
 import type {
   AttemptInput,
   DashboardOverview,
+  ExamAccuracy,
   Flashcard,
   FlashcardInput,
   FlashcardReview,
@@ -23,14 +26,12 @@ function isDue(fc: Flashcard): boolean {
   return !!fc.review && new Date(fc.review.due_date).getTime() <= Date.now();
 }
 
-function flashcardState(fc: Flashcard): "vencido" | "aprendizado" | "maduro" {
-  if (isDue(fc)) return "vencido";
-  if (!fc.review || fc.review.interval_days < 21) return "aprendizado";
-  return "maduro";
+function isMature(fc: Flashcard): boolean {
+  return !!fc.review && fc.review.interval_days >= 21;
 }
 
-function subjectName(id: number): string {
-  return db.subjects.find((s) => s.id === id)?.name ?? "—";
+function accuracy(correct: number, attempts: number): number {
+  return attempts > 0 ? correct / attempts : 0;
 }
 
 function buildQueue(minutes: number): StudyQueue {
@@ -40,8 +41,22 @@ function buildQueue(minutes: number): StudyQueue {
   for (const fc of db.flashcards.filter(isDue)) {
     items.push({
       kind: "flashcard",
-      flashcard: clone(fc),
-      reasons: ["Flashcard vencido"],
+      id: fc.id,
+      subject_id: fc.subject_id,
+      subject_name:
+        db.subjects.find((s) => s.id === fc.subject_id)?.name ?? "—",
+      score: 100,
+      reasons: ["vencido"],
+      estimated_seconds: 30,
+      content: {
+        card_kind: fc.kind,
+        front: fc.front,
+        back: fc.back,
+        interval_days: fc.review?.interval_days,
+        ease_factor: fc.review?.ease_factor,
+        lapses: fc.review?.lapses,
+        reps: fc.review?.reps,
+      },
     });
   }
 
@@ -49,9 +64,21 @@ function buildQueue(minutes: number): StudyQueue {
   // aproximamos incluindo todas as questões com um motivo genérico.
   for (const q of db.questions) {
     items.push({
-      kind: "questao",
-      question: clone(q),
-      reasons: ["Eixo pouco estudado"],
+      kind: "question",
+      id: q.id,
+      subject_id: q.subject_id,
+      subject_name: db.subjects.find((s) => s.id === q.subject_id)?.name ?? "—",
+      score: 40,
+      reasons: ["eixo pouco estudado"],
+      estimated_seconds: 100,
+      content: {
+        banca_id: q.banca_id ?? undefined,
+        exam_id: q.exam_id ?? undefined,
+        format: q.format,
+        statement: q.statement,
+        alternatives: q.alternatives,
+        correct_answer: q.correct_answer,
+      },
     });
   }
 
@@ -61,58 +88,47 @@ function buildQueue(minutes: number): StudyQueue {
 }
 
 function overview(): DashboardOverview {
-  const accuracy_by_subject: SubjectAccuracy[] = db.subjects
-    .filter((s) => db.questions.some((q) => q.subject_id === s.id))
-    .map((s, i) => {
-      const answered = 8 + i * 3;
-      const correct = Math.round(answered * (0.45 + (i % 5) * 0.1));
-      return {
-        subject_id: s.id,
-        subject_name: s.name,
-        answered,
-        correct,
-      };
-    });
-
-  const volume_30d = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
+  const subjectsWithQuestions = db.subjects.filter((s) =>
+    db.questions.some((q) => q.subject_id === s.id),
+  );
+  const subjects: SubjectAccuracy[] = subjectsWithQuestions.map((s, i) => {
+    const attempts = 8 + i * 3;
+    const correct = Math.round(attempts * (0.45 + (i % 5) * 0.1));
     return {
-      date: d.toISOString().slice(0, 10),
-      questions: (i * 7) % 13,
-      reviews: (i * 5) % 9,
+      subject_id: s.id,
+      subject_name: s.name,
+      attempts,
+      correct,
+      accuracy: accuracy(correct, attempts),
     };
   });
 
-  const health = db.flashcards.reduce(
-    (acc, fc) => {
-      acc[flashcardState(fc)] += 1;
-      return acc;
-    },
-    { vencido: 0, aprendizado: 0, maduro: 0 },
-  );
+  const exams: ExamAccuracy[] = db.exams.map((e, i) => {
+    const attempts = 10 + i * 4;
+    const correct = 6 + i * 2;
+    return {
+      exam_id: e.id,
+      exam_name: e.name,
+      attempts,
+      correct,
+      accuracy: accuracy(correct, attempts),
+    };
+  });
 
   return {
-    due_today: db.flashcards.filter(isDue).length,
-    suggested_questions: db.questions.length,
-    streak_days: 6,
-    questions_last_7d: 42,
-    accuracy_last_7d: 0.68,
-    accuracy_by_subject,
-    accuracy_by_exam: db.exams.map((e, i) => ({
-      id: e.id,
-      name: e.name,
-      answered: 10 + i * 4,
-      correct: 6 + i * 2,
-    })),
-    accuracy_by_banca: db.bancas.map((b, i) => ({
-      id: b.id,
-      name: b.name,
-      answered: 15 + i * 5,
-      correct: 9 + i * 3,
-    })),
-    volume_30d,
-    flashcard_health: health,
+    flashcards: {
+      due: db.flashcards.filter(isDue).length,
+      mature: db.flashcards.filter(isMature).length,
+      total: db.flashcards.length,
+    },
+    subjects,
+    exams,
+    confidence: [
+      { confidence: "certeza", attempts: 20, correct: 18, accuracy: 0.9 },
+      { confidence: "duvida", attempts: 15, correct: 9, accuracy: 0.6 },
+      { confidence: "chute", attempts: 7, correct: 2, accuracy: 0.29 },
+    ],
+    volume: { last_7_days: 42, last_30_days: 168 },
   };
 }
 
@@ -139,8 +155,6 @@ async function get<T>(path: string): Promise<T> {
       list = list.filter((q) => q.banca_id === Number(params.banca_id));
     if (params.exam_id)
       list = list.filter((q) => q.exam_id === Number(params.exam_id));
-    if (params.year)
-      list = list.filter((q) => q.exam_year === Number(params.year));
     if (params.format) list = list.filter((q) => q.format === params.format);
     return clone(list) as T;
   }
@@ -156,8 +170,6 @@ async function get<T>(path: string): Promise<T> {
     let list = db.flashcards.slice();
     if (params.subject_id)
       list = list.filter((f) => f.subject_id === Number(params.subject_id));
-    if (params.state)
-      list = list.filter((f) => flashcardState(f) === params.state);
     return clone(list) as T;
   }
 
@@ -204,7 +216,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   }
 
   if (route === "/api/questions") {
-    const input = body as Omit<import("../types").Question, "id">;
+    const input = body as Omit<Question, "id">;
     const q = { id: nextId(db.questions), ...input };
     db.questions.push(q);
     return clone(q) as T;
@@ -219,6 +231,16 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       kind: input.kind,
       front: input.front,
       back: input.back,
+      review: {
+        id: nextId(db.flashcards),
+        flashcard_id: nextId(db.flashcards),
+        due_date: new Date().toISOString(),
+        interval_days: 0,
+        ease_factor: 2.5,
+        reps: 0,
+        lapses: 0,
+        last_grade: 0,
+      },
     };
     db.flashcards.push(fc);
     return clone(fc) as T;
@@ -228,14 +250,14 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   if (attemptMatch) {
     const input = body as AttemptInput;
     const q = db.questions.find((x) => x.id === Number(attemptMatch[1]));
-    const is_correct = q ? q.correct_answer === input.given_answer : false;
+    const is_correct = q ? q.correct_answer === input.answer : false;
     return {
       id: Math.floor(Math.random() * 1e9),
       question_id: Number(attemptMatch[1]),
-      given_answer: input.given_answer,
+      answer: input.answer,
       is_correct,
       confidence: input.confidence,
-      attempted_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     } as T;
   }
 
@@ -252,7 +274,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       ease_factor: 2.5,
       reps: 0,
       lapses: 0,
-      last_reviewed_at: null,
+      last_grade: 0,
     };
     const next = sm2Review(
       {
@@ -267,7 +289,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       ...prev,
       ...next,
       due_date: nextDueDate(next.interval_days, new Date()).toISOString(),
-      last_reviewed_at: new Date().toISOString(),
+      last_grade: input.grade,
     };
     fc.review = updated;
     return clone(updated) as T;

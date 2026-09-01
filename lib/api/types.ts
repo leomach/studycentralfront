@@ -1,5 +1,13 @@
-// Tipos da API — espelham os structs do backend Go (CLAUDE.md §1.1 e §8).
-// Nomes de domínio em português; nomes técnicos em inglês (§9).
+// Tipos da API — espelham os structs do backend Go tal como ele existe hoje
+// (CLAUDE.md §1.1 e §8), não a especificação original.
+//
+// DIVERGÊNCIA CORRIGIDA (ver auditoria de 2026-09-01): a versão anterior deste
+// arquivo assumia um contrato que o backend real nunca implementou —
+// given_answer/attempted_at em vez de answer/created_at, alternatives como
+// string[] em vez de {key,text}[], exam_year embutido na questão, review
+// aninhado por padrão, fila com question/flashcard aninhados em vez de
+// content achatado, overview com streak/volume diário. Este arquivo foi
+// reescrito para bater com o Go; ver studycentralback/internal/*/model.go.
 
 export type ID = number;
 
@@ -27,17 +35,23 @@ export interface Exam {
 
 export type QuestionFormat = "certo_errado" | "multipla_escolha";
 
+// Uma alternativa por posição, com uma chave estável (tipicamente "a".."e")
+// que é o valor comparado contra `correct_answer` — não o índice na lista.
+export interface Alternative {
+  key: string;
+  text: string;
+}
+
 export interface Question {
   id: ID;
   subject_id: ID;
   banca_id: ID | null;
   exam_id: ID | null;
-  exam_year: number | null;
   format: QuestionFormat;
   statement: string;
-  // Múltipla escolha: uma alternativa por posição (A..E). Certo/errado: vazio.
-  alternatives: string[];
-  // Índice da alternativa correta (múltipla escolha) ou "certo" | "errado".
+  // Múltipla escolha: uma entrada por alternativa. Certo/errado: vazio.
+  alternatives: Alternative[];
+  // A key da alternativa correta (múltipla escolha) ou "certo" | "errado".
   correct_answer: string;
 }
 
@@ -46,14 +60,14 @@ export type Confidence = "certeza" | "duvida" | "chute";
 export interface Attempt {
   id: ID;
   question_id: ID;
-  given_answer: string;
+  answer: string;
   is_correct: boolean;
   confidence: Confidence;
-  attempted_at: string; // ISO
+  created_at: string; // ISO
 }
 
 export interface AttemptInput {
-  given_answer: string;
+  answer: string;
   confidence: Confidence;
   client_id: string; // UUID de idempotência (§7)
 }
@@ -70,6 +84,9 @@ export interface Flashcard {
   kind: FlashcardKind;
   front: string;
   back: string;
+  // Presente quando o card vem de GET /flashcards (join no backend) ou de um
+  // item de flashcard sintetizado a partir da fila do dia. Ausente só é
+  // teoricamente possível (Create grava os dois juntos no backend).
   review?: FlashcardReview;
 }
 
@@ -81,7 +98,7 @@ export interface FlashcardReview {
   ease_factor: number;
   reps: number;
   lapses: number;
-  last_reviewed_at: string | null;
+  last_grade: number;
 }
 
 export interface FlashcardInput {
@@ -102,15 +119,41 @@ export interface ReviewInput {
 
 // ---- Fila do dia ----
 
-export type QueueItemKind = "questao" | "flashcard";
+// Em inglês porque é o valor literal que o backend envia — não traduzimos o
+// enum na borda, só o rótulo exibido na UI.
+export type QueueItemKind = "question" | "flashcard";
+
+// O conteúdo do item, achatado (não aninhado como Question/Flashcard) porque
+// é assim que o backend serializa: um único objeto com os campos que existirem
+// conforme `kind` (as chaves do outro tipo vêm ausentes/undefined).
+export interface QueueContent {
+  // Flashcard
+  card_kind?: FlashcardKind;
+  front?: string;
+  back?: string;
+  interval_days?: number;
+  ease_factor?: number;
+  lapses?: number;
+  reps?: number;
+
+  // Questão
+  banca_id?: ID;
+  exam_id?: ID;
+  format?: QuestionFormat;
+  statement?: string;
+  alternatives?: Alternative[];
+  correct_answer?: string;
+}
 
 export interface QueueItem {
   kind: QueueItemKind;
-  // Exatamente um destes vem preenchido conforme `kind`.
-  question?: Question;
-  flashcard?: Flashcard;
-  // Por que o item entrou na fila (§1.1 — exibir discretamente).
+  id: ID; // question_id ou flashcard_id conforme `kind`
+  subject_id: ID;
+  subject_name: string;
+  score: number;
   reasons: string[];
+  estimated_seconds: number;
+  content: QueueContent;
 }
 
 export interface StudyQueue {
@@ -123,40 +166,41 @@ export interface StudyQueue {
 export interface SubjectAccuracy {
   subject_id: ID;
   subject_name: string;
-  answered: number;
+  attempts: number;
   correct: number;
+  accuracy: number; // 0..1, já calculado pelo servidor
 }
 
-export interface NamedAccuracy {
-  id: ID;
-  name: string;
-  answered: number;
+export interface ExamAccuracy {
+  exam_id: ID;
+  exam_name: string;
+  attempts: number;
   correct: number;
+  accuracy: number;
 }
 
-export interface VolumePoint {
-  date: string; // YYYY-MM-DD
-  questions: number;
-  reviews: number;
+export interface ConfidenceAccuracy {
+  confidence: Confidence;
+  attempts: number;
+  correct: number;
+  accuracy: number;
 }
 
 export interface FlashcardHealth {
-  vencido: number;
-  aprendizado: number;
-  maduro: number;
+  due: number;
+  mature: number;
+  total: number;
+}
+
+export interface VolumeOverview {
+  last_7_days: number;
+  last_30_days: number;
 }
 
 export interface DashboardOverview {
-  // Bloco de início.
-  due_today: number;
-  suggested_questions: number;
-  streak_days: number;
-  questions_last_7d: number;
-  accuracy_last_7d: number; // 0..1
-  // Blocos de desempenho.
-  accuracy_by_subject: SubjectAccuracy[];
-  accuracy_by_exam: NamedAccuracy[];
-  accuracy_by_banca: NamedAccuracy[];
-  volume_30d: VolumePoint[];
-  flashcard_health: FlashcardHealth;
+  flashcards: FlashcardHealth;
+  subjects: SubjectAccuracy[];
+  exams: ExamAccuracy[];
+  confidence: ConfidenceAccuracy[];
+  volume: VolumeOverview;
 }

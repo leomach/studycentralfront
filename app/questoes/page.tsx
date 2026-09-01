@@ -10,20 +10,17 @@ import {
   useSubjects,
   type QuestionFilter,
 } from "@/lib/api/queries";
-import type { Question } from "@/lib/api/types";
+import type { Exam, Question } from "@/lib/api/types";
 import { db, type QueuedItem } from "@/lib/db/schema";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Sheet } from "@/components/ui/Sheet";
 import { subjectPath } from "@/lib/format";
 
-const STATUS = [
-  { value: "", label: "Todas" },
-  { value: "nunca_respondida", label: "Nunca respondidas" },
-  { value: "errei", label: "Que eu errei" },
-  { value: "acertei_chute", label: "Que acertei no chute" },
-];
-
+// "Histórico" (nunca respondida/errei/acertei no chute) e "Ano" saíram do v1:
+// o primeiro exigiria agregação de attempts no backend, o segundo um join com
+// exams — nenhum dos dois existe hoje (ver auditoria de 2026-09-01). Reaparecem
+// quando o backend expuser esses filtros.
 const FORMATOS = [
   { value: "", label: "Qualquer formato" },
   { value: "certo_errado", label: "Certo/Errado" },
@@ -52,7 +49,7 @@ export default function QuestoesPage() {
   const set = <K extends keyof QuestionFilter>(k: K, v: string) =>
     setFilter((f) => ({
       ...f,
-      [k]: v === "" ? undefined : k === "year" ? Number(v) : (v as never),
+      [k]: v === "" ? undefined : (v as never),
     }));
 
   const activeCount = Object.values(filter).filter(
@@ -102,6 +99,7 @@ export default function QuestoesPage() {
               key={q.id}
               q={q}
               subjects={subjects.data ?? []}
+              exams={exams.data ?? []}
               bancaName={
                 bancas.data?.find((b) => b.id === q.banca_id)?.name ?? ""
               }
@@ -148,12 +146,6 @@ export default function QuestoesPage() {
           value={filter.format ?? ""}
           onChange={(e) => set("format", e.target.value)}
         />
-        <Select
-          label="Histórico"
-          options={STATUS}
-          value={filter.status ?? ""}
-          onChange={(e) => set("status", e.target.value)}
-        />
       </FilterSheet>
     </main>
   );
@@ -162,13 +154,16 @@ export default function QuestoesPage() {
 function QuestionRow({
   q,
   subjects,
+  exams,
   bancaName,
 }: {
   q: Question;
   subjects: { id: number; parent_id: number | null; name: string }[];
+  exams: Exam[];
   bancaName: string;
 }) {
-  const meta = [bancaName, q.exam_year, subjectPath(q.subject_id, subjects)]
+  const year = exams.find((e) => e.id === q.exam_id)?.year;
+  const meta = [bancaName, year, subjectPath(q.subject_id, subjects)]
     .filter(Boolean)
     .join(" · ");
   return (

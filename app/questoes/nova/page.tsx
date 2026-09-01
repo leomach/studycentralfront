@@ -10,7 +10,13 @@ import { Input, Textarea } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
 import { subjectPath } from "@/lib/format";
 
+function letterKey(i: number): string {
+  return String.fromCharCode(97 + i); // "a", "b", "c"...
+}
+
 // Cadastro de questão (cenário secundário: desktop, cadastro em lote).
+// Sem campo de ano: o ano vive em Exam, não em Question (o backend não tem
+// essa coluna — ver auditoria de 2026-09-01).
 export default function NovaQuestaoPage() {
   const router = useRouter();
   const subjects = useSubjects();
@@ -21,10 +27,12 @@ export default function NovaQuestaoPage() {
   const [subjectId, setSubjectId] = useState("");
   const [bancaId, setBancaId] = useState("");
   const [examId, setExamId] = useState("");
-  const [year, setYear] = useState("");
   const [format, setFormat] = useState<QuestionFormat>("certo_errado");
   const [statement, setStatement] = useState("");
   const [alternatives, setAlternatives] = useState<string[]>(["", "", "", "", ""]);
+  // Para certo_errado: "certo"/"errado". Para múltipla escolha: a key da
+  // alternativa (letra), sempre estável por posição — nunca reindexada por
+  // filtro de alternativas vazias.
   const [correct, setCorrect] = useState("certo");
 
   const canSave = subjectId !== "" && statement.trim() !== "";
@@ -35,12 +43,13 @@ export default function NovaQuestaoPage() {
       subject_id: Number(subjectId),
       banca_id: bancaId ? Number(bancaId) : null,
       exam_id: examId ? Number(examId) : null,
-      exam_year: year ? Number(year) : null,
       format,
       statement: statement.trim(),
       alternatives:
         format === "multipla_escolha"
-          ? alternatives.filter((a) => a.trim() !== "")
+          ? alternatives
+              .map((text, i) => ({ key: letterKey(i), text: text.trim() }))
+              .filter((a) => a.text !== "")
           : [],
       correct_answer: correct,
     });
@@ -73,25 +82,17 @@ export default function NovaQuestaoPage() {
           value={bancaId}
           onChange={(e) => setBancaId(e.target.value)}
         />
-        <Input
-          label="Ano"
-          type="number"
-          inputMode="numeric"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
+        <Select
+          label="Concurso"
+          placeholder="—"
+          options={(exams.data ?? []).map((e) => ({
+            value: String(e.id),
+            label: `${e.name} (${e.year})`,
+          }))}
+          value={examId}
+          onChange={(e) => setExamId(e.target.value)}
         />
       </div>
-
-      <Select
-        label="Concurso"
-        placeholder="—"
-        options={(exams.data ?? []).map((e) => ({
-          value: String(e.id),
-          label: `${e.name} (${e.year})`,
-        }))}
-        value={examId}
-        onChange={(e) => setExamId(e.target.value)}
-      />
 
       <Select
         label="Formato"
@@ -103,7 +104,7 @@ export default function NovaQuestaoPage() {
         onChange={(e) => {
           const f = e.target.value as QuestionFormat;
           setFormat(f);
-          setCorrect(f === "certo_errado" ? "certo" : "0");
+          setCorrect(f === "certo_errado" ? "certo" : letterKey(0));
         }}
       />
 
@@ -129,7 +130,7 @@ export default function NovaQuestaoPage() {
           {alternatives.map((alt, i) => (
             <Input
               key={i}
-              label={`Alternativa ${String.fromCharCode(65 + i)}`}
+              label={`Alternativa ${letterKey(i).toUpperCase()}`}
               value={alt}
               onChange={(e) =>
                 setAlternatives((prev) =>
@@ -141,8 +142,8 @@ export default function NovaQuestaoPage() {
           <Select
             label="Alternativa correta"
             options={alternatives.map((_, i) => ({
-              value: String(i),
-              label: String.fromCharCode(65 + i),
+              value: letterKey(i),
+              label: letterKey(i).toUpperCase(),
             }))}
             value={correct}
             onChange={(e) => setCorrect(e.target.value)}
