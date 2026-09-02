@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use } from "react";
 import { useRouter } from "next/navigation";
-import { useFlashcards, useSubjects } from "@/lib/api/queries";
+import { useFlashcard, useSubjects } from "@/lib/api/queries";
 import { subjectPath } from "@/lib/format";
 import { Canvas } from "@/components/ui/Card";
 import { StatBox } from "@/components/ui/StatBlock";
@@ -15,9 +15,8 @@ export default function FlashcardDetalhePage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: cards = [] } = useFlashcards();
+  const { data: fc } = useFlashcard(Number(id));
   const subjects = useSubjects();
-  const fc = useMemo(() => cards.find((c) => c.id === Number(id)), [cards, id]);
 
   const nav = <AppNav title="Flashcard" action={<AppNavBackButton onClick={() => router.push("/flashcards")} />} />;
 

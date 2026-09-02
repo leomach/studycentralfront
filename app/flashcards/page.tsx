@@ -40,11 +40,20 @@ export default function FlashcardsPage() {
   const [subjectId, setSubjectId] = useState<number | undefined>(undefined);
   const [state, setState] = useState<FlashcardState | "">("");
   const subjects = useSubjects();
-  const { data: allCards = [], isLoading } = useFlashcards(subjectId);
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFlashcards(subjectId);
+  const allCards = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  const total = data?.pages[0]?.total ?? 0;
 
   // O backend não filtra por estado (vencido/aprendizado/maduro) — ele é
   // derivado de `review`, que já vem embutido em cada card, então o filtro é
-  // só uma seleção local sobre a lista já buscada.
+  // só uma seleção local sobre a lista já carregada (pode não cobrir todos os
+  // cards do eixo enquanto houver página seguinte — daí o aviso abaixo).
   const cards = useMemo(
     () => (state ? allCards.filter((fc) => estadoLabel(fc) === state) : allCards),
     [allCards, state],
@@ -126,25 +135,41 @@ export default function FlashcardsPage() {
               <p className="font-sans text-[15px] font-bold opacity-60">Nenhum flashcard.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {cards.map((fc) => {
-                const estado = estadoLabel(fc);
-                return (
-                  <Link key={fc.id} href={`/flashcards/${fc.id}`}>
-                    <Card tone="surface" radius="lg" className="flex flex-col gap-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="m-0 line-clamp-2 font-sans text-[16px] font-bold leading-[1.4]">{fc.front}</p>
-                        <Badge tone={ESTADO_BADGE[estado]}>{estado}</Badge>
-                      </div>
-                      <p className="m-0 font-mono text-[12px] opacity-55">
-                        {fc.kind === "resumo" ? "resumo" : "pergunta"} ·{" "}
-                        {subjectPath(fc.subject_id, subjects.data ?? [])}
-                      </p>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
+            <>
+              <p className="m-0 font-mono text-[13px] font-semibold opacity-55">
+                {allCards.length} de {total} {total === 1 ? "card" : "cards"}
+                {state && hasNextPage ? " · filtro aplicado só sobre os carregados" : ""}
+              </p>
+              <div className="mt-3 flex flex-col gap-3">
+                {cards.map((fc) => {
+                  const estado = estadoLabel(fc);
+                  return (
+                    <Link key={fc.id} href={`/flashcards/${fc.id}`}>
+                      <Card tone="surface" radius="lg" className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="m-0 line-clamp-2 font-sans text-[16px] font-bold leading-[1.4]">{fc.front}</p>
+                          <Badge tone={ESTADO_BADGE[estado]}>{estado}</Badge>
+                        </div>
+                        <p className="m-0 font-mono text-[12px] opacity-55">
+                          {fc.kind === "resumo" ? "resumo" : "pergunta"} ·{" "}
+                          {subjectPath(fc.subject_id, subjects.data ?? [])}
+                        </p>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+              {hasNextPage && (
+                <Button
+                  className="mt-4 w-full"
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? "Carregando…" : `Carregar mais (${total - allCards.length})`}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>

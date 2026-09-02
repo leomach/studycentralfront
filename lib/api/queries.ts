@@ -2,7 +2,7 @@
 // dados de servidor para os componentes.
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiGet } from "./client";
 import { useSession } from "@/lib/auth/hooks";
 import type {
@@ -12,11 +12,16 @@ import type {
   Exam,
   Flashcard,
   ID,
+  Page,
   Question,
   QuestionFormat,
   StudyQueue,
   Subject,
 } from "./types";
+
+// Tamanho de página para as duas listas paginadas (questões, flashcards) —
+// ver README/CLAUDE.md do backend, seção "Paginação".
+const PAGE_SIZE = 20;
 
 export const qk = {
   me: ["me"] as const,
@@ -26,6 +31,7 @@ export const qk = {
   questions: (f: QuestionFilter) => ["questions", f] as const,
   question: (id: ID) => ["question", id] as const,
   flashcards: (subjectId?: ID) => ["flashcards", subjectId ?? null] as const,
+  flashcard: (id: ID) => ["flashcard", id] as const,
   queue: (minutes: number) => ["queue", minutes] as const,
   dashboard: ["dashboard"] as const,
   adminUsers: ["admin", "users"] as const,
@@ -104,10 +110,21 @@ export function useExams() {
   });
 }
 
+// Paginado (offset-based, "carregar mais" — ver README do backend). Cada
+// página vem com `total`: `data.pages[0].total` é o total do filtro atual,
+// e `data.pages.flatMap(p => p.items)` é a lista achatada carregada até agora.
 export function useQuestions(filter: QuestionFilter) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: qk.questions(filter),
-    queryFn: () => apiGet<Question[]>(`/api/questions${toQuery(filter)}`),
+    queryFn: ({ pageParam }) =>
+      apiGet<Page<Question>>(
+        `/api/questions${toQuery({ ...filter, limit: PAGE_SIZE, offset: pageParam })}`,
+      ),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.offset + lastPage.items.length;
+      return loaded < lastPage.total ? loaded : undefined;
+    },
   });
 }
 
@@ -122,13 +139,30 @@ export function useQuestion(id: ID) {
 // O estado (vencido/aprendizado/maduro) é derivado no cliente a partir de
 // `review` — o backend não filtra por ele, então o filtro fica de fora daqui
 // e vira responsabilidade de quem consome a lista (app/flashcards/page.tsx).
+// Paginado igual a useQuestions acima — mesmo formato de página.
 export function useFlashcards(subjectId?: ID) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: qk.flashcards(subjectId),
-    queryFn: () =>
-      apiGet<Flashcard[]>(
-        `/api/flashcards${toQuery({ subject_id: subjectId })}`,
+    queryFn: ({ pageParam }) =>
+      apiGet<Page<Flashcard>>(
+        `/api/flashcards${toQuery({ subject_id: subjectId, limit: PAGE_SIZE, offset: pageParam })}`,
       ),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.offset + lastPage.items.length;
+      return loaded < lastPage.total ? loaded : undefined;
+    },
+  });
+}
+
+// Um card só, por id — a tela de detalhe (app/flashcards/[id]/page.tsx)
+// buscava isso filtrando a lista paginada inteira; com a paginação, um card
+// fora da primeira página nunca seria encontrado assim, daí este hook.
+export function useFlashcard(id: ID) {
+  return useQuery({
+    queryKey: qk.flashcard(id),
+    queryFn: () => apiGet<Flashcard>(`/api/flashcards/${id}`),
+    enabled: Number.isFinite(id),
   });
 }
 

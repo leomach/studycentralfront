@@ -11,6 +11,17 @@
 
 export type ID = number;
 
+// Envelope de paginação de GET /api/questions e GET /api/flashcards (as
+// únicas duas listas do backend que crescem sem limite — ver CLAUDE.md §8).
+// `total` bate com o filtro aplicado, sem limit/offset: é o que permite
+// calcular quanto falta para oferecer "carregar mais".
+export interface Page<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // ---- Conta (GET /api/me) ----
 
 export type Plan = "free" | "premium";

@@ -545,12 +545,12 @@ POST   /api/bancas
 GET    /api/exams
 POST   /api/exams
 
-GET    /api/questions?subject_id=&banca_id=&exam_id=&format=
+GET    /api/questions?subject_id=&banca_id=&exam_id=&format=&limit=&offset=
 POST   /api/questions
 GET    /api/questions/:id
 POST   /api/questions/:id/attempts     { answer, confidence, client_id }
 
-GET    /api/flashcards?subject_id=
+GET    /api/flashcards?subject_id=&limit=&offset=
 POST   /api/flashcards
 POST   /api/flashcards/:id/reviews     { grade, client_id }
 
@@ -563,6 +563,21 @@ GET    /api/admin/users
 PATCH  /api/admin/users/:id/plan       { plan: "free" | "premium" }
 PATCH  /api/admin/users/:id/admin      { is_admin: boolean }
 ```
+
+**Paginação** (adicionada em 2026-09-02): `GET /api/questions` e `GET
+/api/flashcards` — as únicas duas listas que crescem sem limite, ver §1.1 —
+não devolvem mais um array solto, e sim um envelope
+`{ items, total, limit, offset }` (`total` bate com o filtro aplicado, sem
+limit/offset). `limit` padrão 20, teto 100 no servidor. `useQuestions`/
+`useFlashcards` em `lib/api/queries.ts` usam `useInfiniteQuery` do TanStack
+Query por isso — cada tela consome `data.pages.flatMap(p => p.items)` como a
+lista achatada e `data.pages[0]?.total` como o total, com `fetchNextPage`
+acionado por um botão "Carregar mais" (não scroll infinito automático —
+mais previsível numa tela que também serve de lista de navegação). O mock em
+`lib/api/mocks/` espelha esse mesmo envelope (`paginate()` em
+`mocks/index.ts`). Outras listas (`subjects`, `bancas`, `exams`,
+`/flashcards/due`) continuam sem paginação de propósito — são pequenas ou já
+orçadas por um `limit` fixo, ver README do backend.
 
 Toda rota fora de `/api/auth/*` exige o header `Authorization: Bearer
 <access_token>` — sem ele, 401; com token de conta `free`, 403. `lib/api/client.ts`

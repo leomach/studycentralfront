@@ -49,7 +49,15 @@ export default function QuestoesPage() {
   const subjects = useSubjects();
   const bancas = useBancas();
   const exams = useExams();
-  const { data: questions = [], isLoading } = useQuestions(filter);
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useQuestions(filter);
+  const questions = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
+  const total = data?.pages[0]?.total ?? 0;
 
   const subjectOptions = useMemo(
     () =>
@@ -120,17 +128,32 @@ export default function QuestoesPage() {
           ) : questions.length === 0 ? (
             <p className="font-sans text-[15px] font-bold opacity-60">Nenhuma questão para este filtro.</p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {questions.map((q) => (
-                <QuestionRow
-                  key={q.id}
-                  q={q}
-                  subjects={subjects.data ?? []}
-                  exams={exams.data ?? []}
-                  bancaName={bancas.data?.find((b) => b.id === q.banca_id)?.name ?? ""}
-                />
-              ))}
-            </div>
+            <>
+              <p className="m-0 font-mono text-[13px] font-semibold opacity-55">
+                {questions.length} de {total} {total === 1 ? "questão" : "questões"}
+              </p>
+              <div className="mt-3 flex flex-col gap-3">
+                {questions.map((q) => (
+                  <QuestionRow
+                    key={q.id}
+                    q={q}
+                    subjects={subjects.data ?? []}
+                    exams={exams.data ?? []}
+                    bancaName={bancas.data?.find((b) => b.id === q.banca_id)?.name ?? ""}
+                  />
+                ))}
+              </div>
+              {hasNextPage && (
+                <Button
+                  className="mt-4 w-full"
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? "Carregando…" : `Carregar mais (${total - questions.length})`}
+                </Button>
+              )}
+            </>
           )}
         </div>
 

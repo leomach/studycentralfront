@@ -132,6 +132,19 @@ function overview(): DashboardOverview {
   };
 }
 
+// paginate espelha o envelope real do backend Go para GET /questions e
+// GET /flashcards (ver README/CLAUDE.md — auditoria de 2026-09-01): ordena
+// por id desc, igual ao SQL real, e recorta por limit/offset.
+function paginate<T extends { id: number }>(
+  list: T[],
+  params: Record<string, string>,
+): { items: T[]; total: number; limit: number; offset: number } {
+  const sorted = list.slice().sort((a, b) => b.id - a.id);
+  const limit = Number(params.limit) || 20;
+  const offset = Number(params.offset) || 0;
+  return { items: sorted.slice(offset, offset + limit), total: sorted.length, limit, offset };
+}
+
 // ---- Roteamento ----
 
 function match(path: string): { route: string; params: Record<string, string> } {
@@ -156,7 +169,7 @@ async function get<T>(path: string): Promise<T> {
     if (params.exam_id)
       list = list.filter((q) => q.exam_id === Number(params.exam_id));
     if (params.format) list = list.filter((q) => q.format === params.format);
-    return clone(list) as T;
+    return clone(paginate(list, params)) as T;
   }
 
   const qMatch = route.match(/^\/api\/questions\/(\d+)$/);
@@ -170,7 +183,14 @@ async function get<T>(path: string): Promise<T> {
     let list = db.flashcards.slice();
     if (params.subject_id)
       list = list.filter((f) => f.subject_id === Number(params.subject_id));
-    return clone(list) as T;
+    return clone(paginate(list, params)) as T;
+  }
+
+  const fcMatch = route.match(/^\/api\/flashcards\/(\d+)$/);
+  if (fcMatch) {
+    const fc = db.flashcards.find((x) => x.id === Number(fcMatch[1]));
+    if (!fc) throw new Error("404");
+    return clone(fc) as T;
   }
 
   if (route === "/api/study/queue") {
