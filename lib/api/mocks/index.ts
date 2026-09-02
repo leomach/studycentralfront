@@ -298,4 +298,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   throw new Error(`Mock: rota POST não mapeada: ${route}`);
 }
 
-export const mockApi = { get, post };
+// O painel administrativo (PATCH /api/admin/*) não tem estado simulado aqui
+// de propósito — mexe com contas reais (plano, papel de admin), não com o
+// catálogo de estudo que o resto deste mock cobre. Sem NEXT_PUBLIC_API_URL
+// configurado, a rota /admin não deveria nem ser alcançável (ver AuthGate).
+async function patch<T>(path: string, _body: unknown): Promise<T> {
+  throw new Error(`Mock: rota PATCH não mapeada: ${match(path).route}`);
+}
+
+export const mockApi = { get, post, patch };

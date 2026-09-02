@@ -4,7 +4,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiPost } from "./client";
+import { apiPatch, apiPost } from "./client";
 import { qk } from "./queries";
 import type {
   Alternative,
@@ -13,6 +13,7 @@ import type {
   Flashcard,
   FlashcardInput,
   ID,
+  Plan,
   Question,
   QuestionFormat,
   Subject,
@@ -73,5 +74,35 @@ export function useCreateFlashcard() {
     mutationFn: (input: FlashcardInput) =>
       apiPost<Flashcard>("/api/flashcards", input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["flashcards"] }),
+  });
+}
+
+// ---- Painel administrativo (app/admin) ----
+// Atrás de RequireAuth + RequireAdminRole no backend — não de RequirePremium
+// (ver CLAUDE.md do backend). Invalida `me` também: quem estiver mexendo na
+// própria linha (ex.: se autopromovendo a premium) vê o resultado sem
+// precisar deslogar/logar de novo.
+
+export function useSetUserPlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, plan }: { id: ID; plan: Plan }) =>
+      apiPatch<void>(`/api/admin/users/${id}/plan`, { plan }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminUsers });
+      qc.invalidateQueries({ queryKey: qk.me });
+    },
+  });
+}
+
+export function useSetUserAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isAdmin }: { id: ID; isAdmin: boolean }) =>
+      apiPatch<void>(`/api/admin/users/${id}/admin`, { is_admin: isAdmin }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminUsers });
+      qc.invalidateQueries({ queryKey: qk.me });
+    },
   });
 }

@@ -9,6 +9,11 @@
 export interface JwtPayload {
   uid: number;
   plan: string;
+  // Tolerante de propósito (não faz parte da validação obrigatória abaixo):
+  // uma sessão persistida antes deste campo existir não pode virar token
+  // inválido só por não ter is_admin — cai em "não admin", não em sessão
+  // quebrada.
+  is_admin: boolean;
   exp: number; // segundos desde epoch (claim padrão JWT)
 }
 
@@ -34,7 +39,7 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
     ) {
       return null;
     }
-    return { uid: payload.uid, plan: payload.plan, exp: payload.exp };
+    return { uid: payload.uid, plan: payload.plan, is_admin: payload.is_admin === true, exp: payload.exp };
   } catch {
     return null;
   }

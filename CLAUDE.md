@@ -53,7 +53,7 @@ revisão, por conta) e `dashboard` (agregações e a fila do dia, por conta).
 Go, não os do desenho original — ver auditoria de 2026-09-01):
 
 ```
-users               id, name, email, plan ('free' | 'premium')
+users               id, name, email, plan ('free' | 'premium'), is_admin
 subjects            id, parent_id, name              # eixo temático, hierárquico — COMPARTILHADO
 bancas              id, name                          # Cebraspe, FGV, FCC... — COMPARTILHADO
 exams               id, name, banca_id, year          # concurso — COMPARTILHADO
@@ -73,8 +73,18 @@ flashcard_reviews   id, flashcard_id, due_date, interval_days,
 ```
 
 **Multi-tenancy**: toda conta nasce `free` e não acessa nenhuma rota fora de
-`/api/auth/*` (403 em tudo o resto) até ser promovida a `premium`
-manualmente. Ver §8 e `lib/auth/`.
+`/api/auth/*` (403 em tudo o resto) até ser promovida a `premium`. Ver §8 e
+`lib/auth/`.
+
+**Papel de administrador de contas** (`is_admin`, campo separado de `plan`):
+concedido uma vez pelo backend via um segredo de servidor (bootstrap, fora
+deste repo), gerenciável dali em diante pela própria conta admin em
+`app/admin/page.tsx` — trocar plano/`is_admin` de qualquer conta. `is_admin`
+viaja no JWT (igual `plan`, decodificado em `lib/auth/jwt.ts`), então
+`AuthGate` deixa passar um admin mesmo com plano `free` (senão o primeiro
+admin, ainda free logo após o bootstrap, ficaria trancado do próprio
+painel) — ver §4 "Navegação" e `components/AuthGate.tsx`. `GET /api/me` não
+exige premium, só sessão válida, exatamente por causa desse caso.
 
 **Algoritmo de repetição espaçada**: SM-2 clássico (não FSRS), implementado em
 `internal/flashcard/sm2.go`. As regras exatas, que o espelho em TypeScript
@@ -285,6 +295,8 @@ app/
 │   └── page.tsx
 ├── perfil/
 │   └── page.tsx                   # identidade, stats, "em breve" (design system STUD)
+├── admin/
+│   └── page.tsx                   # painel de contas — só quem tem is_admin=true (§1.1)
 ├── entrar/page.tsx                # login
 ├── cadastro/page.tsx              # registro
 └── onboarding/
@@ -522,6 +534,9 @@ POST   /api/auth/login                { email, password } -> { access_token, ref
 POST   /api/auth/refresh              { refresh_token }   -> { access_token, refresh_token }
 POST   /api/auth/logout               { refresh_token }
 
+# Só sessão válida, NÃO exige premium (ver "papel de administrador" acima)
+GET    /api/me
+
 # Protegidas — header Authorization: Bearer <access_token>, exige plano premium
 GET    /api/subjects
 POST   /api/subjects
@@ -541,6 +556,12 @@ POST   /api/flashcards/:id/reviews     { grade, client_id }
 
 GET    /api/study/queue?minutes=
 GET    /api/dashboard/overview
+
+# Painel /admin — Authorization: Bearer <access_token> de uma conta com
+# is_admin=true; NÃO exige premium (mesma razão de GET /api/me acima)
+GET    /api/admin/users
+PATCH  /api/admin/users/:id/plan       { plan: "free" | "premium" }
+PATCH  /api/admin/users/:id/admin      { is_admin: boolean }
 ```
 
 Toda rota fora de `/api/auth/*` exige o header `Authorization: Bearer
@@ -551,8 +572,22 @@ na mão. `answer`/`format` (não `given_answer`/`year`/`status`) são os nomes
 reais de campo/filtro do Go — "ano" e "nunca respondida/errei/acertei no
 chute" não existem como filtro no backend hoje, não invente esses parâmetros.
 
-A URL base vem de `NEXT_PUBLIC_API_URL`. Em desenvolvimento o backend roda
-localmente em outra porta, então CORS precisa estar liberado do lado Go.
+A URL base vem de `NEXT_PUBLIC_API_URL` (resolvida em `lib/api/base-url.ts`,
+o único lugar que lê essa variável — `lib/api/client.ts` e
+`lib/auth/session.ts` importam de lá em vez de duplicar a leitura). Três
+valores possíveis: vazio (mock provisório, §8 acima), um valor literal (URL
+fixa, ex.: um deploy real), ou `"auto"` — deriva a URL do host que o
+navegador usou pra abrir a página, na porta 8080. Use `"auto"` em
+desenvolvimento: como `NEXT_PUBLIC_API_URL` é gravado em texto literal no
+JavaScript na hora do build, um valor fixo tipo `http://localhost:8080` só
+funciona pra quem abre a página exatamente por `localhost` — quem acessa pelo
+IP da rede local (ex.: celular testando o PWA) teria "localhost" resolvendo
+para o próprio aparelho, não para a máquina de dev, e todo fetch falharia com
+erro de conexão mesmo com CORS/firewall corretos. Em desenvolvimento o
+backend roda localmente em outra porta, então CORS precisa estar liberado do
+lado Go (`CORS_ORIGIN`, que aceita uma lista separada por vírgula — esse sim
+é o lugar certo pra listar várias origens, já que é uma checagem de
+segurança, não uma URL de destino única).
 
 Como o backend é um repositório separado, você **não pode alterá-lo a partir
 daqui**. Se algum endpoint não existir ou divergir do descrito acima, não

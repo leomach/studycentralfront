@@ -28,18 +28,34 @@ export const qk = {
   flashcards: (subjectId?: ID) => ["flashcards", subjectId ?? null] as const,
   queue: (minutes: number) => ["queue", minutes] as const,
   dashboard: ["dashboard"] as const,
+  adminUsers: ["admin", "users"] as const,
 };
 
-/** Nome/email/plano reais de quem está logado — só busca com sessão premium
- * de verdade (senão é 403 certo, e o AuthGate já bloqueia esse caso). */
+/** Nome/email/plano/is_admin reais de quem está logado. Não exige premium —
+ * "quem sou eu" precisa responder mesmo para uma conta free (inclusive um
+ * admin free logo após o bootstrap, que só descobre o próprio is_admin por
+ * aqui — ver backend `identity` route group). */
 export function useMe() {
   const session = useSession();
-  const enabled = session.status === "authenticated" && session.plan === "premium";
+  const enabled = session.status === "authenticated";
   return useQuery({
     queryKey: qk.me,
     queryFn: () => apiGet<AuthUser>("/api/me"),
     enabled,
     staleTime: 5 * 60_000,
+  });
+}
+
+/** Lista de contas para o painel /admin. Só chama quando a sessão já se
+ * declara admin (decodificado do próprio JWT — ver lib/auth/session.ts);
+ * evita uma chamada fadada a 403 para quem não é. */
+export function useAdminUsers() {
+  const session = useSession();
+  const enabled = session.status === "authenticated" && session.isAdmin;
+  return useQuery({
+    queryKey: qk.adminUsers,
+    queryFn: () => apiGet<AuthUser[]>("/api/admin/users"),
+    enabled,
   });
 }
 

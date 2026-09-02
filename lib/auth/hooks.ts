@@ -25,28 +25,32 @@ function refreshCache(notify: () => void) {
   });
 }
 
+// Referência estável de propósito (fora do componente): useSyncExternalStore
+// resubscreve sempre que a função `subscribe` muda de identidade — uma
+// arrow function recriada dentro de useSession() a cada render faria isso
+// desinscrever/reinscrever (e reler o IndexedDB) em todo re-render de
+// qualquer componente que chame useSession(), não só quando a sessão muda de
+// verdade.
+function subscribe(notify: () => void) {
+  refreshCache(notify);
+  return onSessionChange(() => refreshCache(notify));
+}
+
 export type SessionState =
   | { status: "loading" }
   | { status: "mock" }
   | { status: "anonymous" }
-  | { status: "authenticated"; plan: string };
+  | { status: "authenticated"; plan: string; isAdmin: boolean };
 
 /** Estado de sessão reativo — reage a login/logout/renovação em qualquer
  * parte do app sem precisar de polling (lib/auth/session.ts notifica). */
 export function useSession(): SessionState {
-  const snapshot = useSyncExternalStore(
-    (notify) => {
-      refreshCache(notify);
-      return onSessionChange(() => refreshCache(notify));
-    },
-    () => cached,
-    () => cached,
-  );
+  const snapshot = useSyncExternalStore(subscribe, () => cached, () => cached);
 
   if (USING_MOCK) return { status: "mock" };
   if (snapshot === undefined) return { status: "loading" };
   if (snapshot === null) return { status: "anonymous" };
-  return { status: "authenticated", plan: snapshot.plan };
+  return { status: "authenticated", plan: snapshot.plan, isAdmin: snapshot.isAdmin };
 }
 
 export function useLogin() {

@@ -5,24 +5,27 @@
 // explicitamente permitido pela §8 enquanto estiver isolado e marcado.
 
 import { mockApi } from "./mocks";
-import { ApiError, type ApiErrorCode } from "./error";
+import { ApiError, guardNetworkError, type ApiErrorCode } from "./error";
 import { forceRefreshAccessToken, getValidAccessToken, reportUnauthorized } from "../auth/session";
+import { API_BASE as BASE, USING_MOCK } from "./base-url";
 
-export { ApiError, type ApiErrorCode };
-
-const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
-export const USING_MOCK = BASE === "";
+export { ApiError, type ApiErrorCode, USING_MOCK };
 
 async function fetchOnce<T>(method: string, path: string, body: unknown, token: string | null): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  // Só o fetch() em si vai coberto — se ele completar e o servidor responder
+  // com um status de erro, isso já é tratado abaixo como ApiError de verdade,
+  // não como falha de rede.
+  const res = await guardNetworkError(() =>
+    fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+  );
   if (!res.ok) {
     const parsed = await res
       .json()
@@ -77,4 +80,9 @@ export function apiGet<T>(path: string): Promise<T> {
 export function apiPost<T>(path: string, body: unknown): Promise<T> {
   if (USING_MOCK) return mockApi.post<T>(path, body);
   return real<T>("POST", path, body);
+}
+
+export function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  if (USING_MOCK) return mockApi.patch<T>(path, body);
+  return real<T>("PATCH", path, body);
 }

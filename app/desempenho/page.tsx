@@ -6,10 +6,11 @@ import type { ExamAccuracy } from "@/lib/api/types";
 import { Canvas, Card } from "@/components/ui/Card";
 import { AccuracyBar } from "@/components/ui/ProgressBar";
 import { StatBox } from "@/components/ui/StatBlock";
+import { Button } from "@/components/ui/Button";
 import { AppNav } from "@/components/AppNav";
 
 export default function DesempenhoPage() {
-  const { data, isLoading } = useDashboard();
+  const { data, isLoading, isError, error, refetch } = useDashboard();
   const bancas = useBancas();
   const exams = useExams();
 
@@ -38,11 +39,31 @@ export default function DesempenhoPage() {
     }));
   }, [data, exams.data, bancas.data]);
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <Canvas tone="forest" className="text-cream">
         <AppNav title="Últimos 30 dias" />
         <p className="px-[var(--canvas-pad)] font-sans text-[15px] font-bold opacity-70">Carregando…</p>
+      </Canvas>
+    );
+  }
+
+  // Sem isto, uma falha de verdade (403 de plano free, rede fora do ar)
+  // deixava a tela presa em "Carregando…" pra sempre — isLoading vira false
+  // depois que a busca falha, mas `data` continua undefined, e nada
+  // distinguia esse caso do carregamento real.
+  if (isError || !data) {
+    return (
+      <Canvas tone="forest" className="text-cream">
+        <AppNav title="Últimos 30 dias" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-[var(--canvas-pad)] text-center">
+          <p className="font-sans text-[16px] font-bold opacity-90">
+            {error instanceof Error ? error.message : "Não foi possível carregar seu desempenho."}
+          </p>
+          <Button variant="light" onClick={() => refetch()}>
+            Tentar de novo
+          </Button>
+        </div>
       </Canvas>
     );
   }

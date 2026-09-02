@@ -15,12 +15,22 @@ const ITEMS = [
 // STUD — components/navigation/TabBar.jsx: cinco rótulos não respiram a
 // 390px). Catálogo e Perfil saem daqui e ficam atrás do botão de perfil em
 // AppNav.
+//
+// `fixed` de verdade (não só "última coisa no flex column"): antes, o
+// TabBar só ficava parado na tela enquanto a altura calculada da página
+// batia exatamente com a viewport — qualquer conteúdo vazando altura (uma
+// tela sem `overflow-y-auto` bem contido, um teclado abrindo, etc.) fazia a
+// página inteira rolar e arrastava o TabBar junto. `fixed` tira ele do
+// fluxo normal e prende na borda inferior da viewport sempre, não importa o
+// que aconteça no conteúdo — components/AuthGate.tsx reserva o mesmo espaço
+// (`--tabbar-h`) em fluxo normal pra nada ficar escondido atrás dele.
 export function TabBar() {
   const pathname = usePathname();
 
   return (
     <nav
-      className="flex flex-shrink-0 gap-2 border-t border-black/[0.08] bg-white px-4 pb-5 pt-3"
+      className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-black/[0.08] bg-white px-4 pt-3"
+      style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }}
       aria-label="Navegação principal"
     >
       {ITEMS.map((item) => {

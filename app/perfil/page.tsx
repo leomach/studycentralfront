@@ -58,8 +58,13 @@ export default function PerfilPage() {
   };
 
   const sair = async () => {
-    await logout.mutateAsync();
-    router.replace("/entrar");
+    // try/finally: navega mesmo se revogar no servidor ou limpar a sessão
+    // local falhar por algum motivo — nunca deixa o botão "travado".
+    try {
+      await logout.mutateAsync();
+    } finally {
+      router.replace("/entrar");
+    }
   };
 
   const d = dashboard.data;
@@ -100,6 +105,20 @@ export default function PerfilPage() {
           <Badge tone="neutral">sequência de dias — em breve</Badge>
           <Badge tone="neutral">tempo estudado — em breve</Badge>
         </div>
+
+        {me.data?.is_admin && (
+          <Card tone="ink" radius="lg" pad="md" className="mt-6 flex items-center justify-between gap-3">
+            <div>
+              <p className="m-0 font-display text-[16px] font-black text-cream">Administração</p>
+              <p className="mt-0.5 font-sans text-[13px] font-semibold text-cream opacity-70">
+                Promover contas a premium, conceder admin a outras.
+              </p>
+            </div>
+            <Button size="sm" variant="light" onClick={() => router.push("/admin")}>
+              Abrir
+            </Button>
+          </Card>
+        )}
 
         <Card tone="surface" radius="lg" pad="md" className="mt-6">
           <Eyebrow>seu concurso</Eyebrow>

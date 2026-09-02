@@ -30,7 +30,11 @@ const VARIANTS: Record<Variant, string> = {
   spring: "bg-spring text-ink",
   sun: "bg-sun text-ink",
   lilac: "bg-lilac text-ink",
-  outline: "bg-transparent text-[var(--text-strong)] shadow-[inset_0_0_0_var(--stroke-2)_var(--rule)]",
+  // Preenchido com --surface-sunk (o mesmo "cinza quieto" de Input/Select/
+  // Chip ocioso) em vez de bg-transparent: só a borda de 2.5px, sem
+  // preenchimento nenhum, lia como texto sublinhado fino em vez de botão —
+  // baixo demais pra decisões reais (ex.: os botões de confiança da sessão).
+  outline: "bg-[var(--surface-sunk)] text-[var(--text-strong)] shadow-[inset_0_0_0_var(--stroke-2)_var(--rule)]",
   ghost: "bg-transparent text-muted",
 };
 

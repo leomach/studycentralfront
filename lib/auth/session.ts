@@ -5,11 +5,11 @@
 // abaixo usam fetch cru, não apiPost.
 
 import { db, type SessionRecord } from "../db/schema";
-import { ApiError, type ApiErrorCode } from "../api/error";
+import { ApiError, guardNetworkError, type ApiErrorCode } from "../api/error";
 import { decodeJwtPayload, isExpiringSoon } from "./jwt";
+import { API_BASE as BASE, USING_MOCK } from "../api/base-url";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
-export const USING_MOCK = BASE === "";
+export { USING_MOCK };
 
 // Buffer de renovação: renova o access token um pouco antes de expirar de
 // verdade, para não correr risco de ele vencer no meio de uma chamada.
@@ -19,14 +19,20 @@ export interface Session {
   accessToken: string;
   refreshToken: string;
   plan: string;
+  isAdmin: boolean;
 }
 
 async function rawPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  // Só o fetch() em si vai coberto — ver lib/api/error.ts (mesmo tratamento
+  // de client.ts, duplicado aqui de propósito: este módulo não pode importar
+  // client.ts, ver comentário no topo do arquivo).
+  const res = await guardNetworkError(() =>
+    fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
   if (!res.ok) {
     const parsed = await res
       .json()
@@ -48,6 +54,7 @@ async function persist(accessToken: string, refreshToken: string): Promise<void>
     accessToken,
     refreshToken,
     plan: claims?.plan ?? "free",
+    isAdmin: claims?.is_admin ?? false,
     exp: claims?.exp ?? 0,
   };
   await db().session.put(record);
@@ -57,7 +64,12 @@ async function persist(accessToken: string, refreshToken: string): Promise<void>
 export async function getSession(): Promise<Session | null> {
   const record = await db().session.get("current");
   if (!record) return null;
-  return { accessToken: record.accessToken, refreshToken: record.refreshToken, plan: record.plan };
+  return {
+    accessToken: record.accessToken,
+    refreshToken: record.refreshToken,
+    plan: record.plan,
+    isAdmin: record.isAdmin,
+  };
 }
 
 export async function clearSession(): Promise<void> {

@@ -53,6 +53,7 @@ export interface SessionRecord {
   accessToken: string;
   refreshToken: string;
   plan: string;
+  isAdmin: boolean;
   exp: number; // exp do access token (segundos epoch), para saber quando renovar
 }
 

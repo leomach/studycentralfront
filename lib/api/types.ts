@@ -20,6 +20,10 @@ export interface AuthUser {
   name: string;
   email: string;
   plan: Plan;
+  // Papel de administrar CONTAS (não confundir com "dono do catálogo", que
+  // não existe — ver CLAUDE.md do backend). Concedido uma vez via bootstrap
+  // (ADMIN_SECRET) e dali em diante gerenciável pelo próprio painel /admin.
+  is_admin: boolean;
 }
 
 // ---- Catálogo ----

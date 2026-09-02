@@ -34,9 +34,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [session.status, isPublicRoute, router]);
 
+  // Um admin passa mesmo sendo free: administrar contas (inclusive promover
+  // a própria) não pode depender de já ser assinante, senão o primeiro admin
+  // (free logo após o bootstrap) fica trancado do próprio painel — mesma
+  // regra já aplicada no RequireAdminRole do backend.
   const allowed =
     session.status === "mock" ||
-    (session.status === "authenticated" && session.plan === "premium");
+    (session.status === "authenticated" && (session.plan === "premium" || session.isAdmin));
 
   useEffect(() => {
     if (!allowed || started.current) return;
@@ -72,7 +76,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   } else if (session.status === "anonymous") {
     // useEffect acima já disparou o redirect; nada pra mostrar no meio tempo.
     content = null;
-  } else if (session.status === "authenticated" && session.plan !== "premium") {
+  } else if (session.status === "authenticated" && session.plan !== "premium" && !session.isAdmin) {
     content = (
       <Canvas tone="forest">
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-[var(--canvas-pad)] text-center text-cream">
@@ -96,6 +100,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
       <div className="flex min-h-0 flex-1 flex-col">{content}</div>
+      {/* TabBar é `fixed` (ver componente) — este espaçador reserva o mesmo
+          espaço em fluxo normal, senão o fim de qualquer tela ficaria
+          escondido atrás dele. */}
+      {tabBar && (
+        <div
+          aria-hidden
+          className="flex-shrink-0"
+          style={{ height: "calc(var(--tabbar-h) + env(safe-area-inset-bottom))" }}
+        />
+      )}
       {tabBar && <TabBar />}
     </div>
   );
@@ -105,13 +119,22 @@ function LogoutLink() {
   const router = useRouter();
   const logout = useLogout();
 
+  // try/finally em vez de onSettled: garante a navegação mesmo se algo no
+  // meio do caminho (revogar no servidor, limpar a sessão local) lançar —
+  // e o texto de "Saindo…" dá o feedback visual que faltava aqui (o botão
+  // "Sair da conta" do Perfil já tinha isso; este, não — parecia travado
+  // no clique mesmo funcionando, só sem nenhum sinal na tela).
+  const sair = async () => {
+    try {
+      await logout.mutateAsync();
+    } finally {
+      router.replace("/entrar");
+    }
+  };
+
   return (
-    <Button
-      variant="light"
-      disabled={logout.isPending}
-      onClick={() => logout.mutate(undefined, { onSettled: () => router.replace("/entrar") })}
-    >
-      Sair
+    <Button variant="light" disabled={logout.isPending} onClick={sair}>
+      {logout.isPending ? "Saindo…" : "Sair"}
     </Button>
   );
 }

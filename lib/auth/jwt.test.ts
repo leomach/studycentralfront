@@ -14,10 +14,21 @@ function fakeToken(payload: object): string {
 
 describe("decodeJwtPayload", () => {
   it("decodifica um token válido", () => {
-    const token = fakeToken({ uid: 7, plan: "premium", exp: 1999999999 });
+    const token = fakeToken({ uid: 7, plan: "premium", is_admin: true, exp: 1999999999 });
     expect(decodeJwtPayload(token)).toEqual({
       uid: 7,
       plan: "premium",
+      is_admin: true,
+      exp: 1999999999,
+    });
+  });
+
+  it("trata is_admin ausente como false, sem invalidar o token", () => {
+    const token = fakeToken({ uid: 7, plan: "free", exp: 1999999999 });
+    expect(decodeJwtPayload(token)).toEqual({
+      uid: 7,
+      plan: "free",
+      is_admin: false,
       exp: 1999999999,
     });
   });

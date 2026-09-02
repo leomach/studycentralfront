@@ -184,6 +184,12 @@
   --tap-min: 44px;
   --tap-lg: 56px;
   --tap-xl: 68px;
+
+  /* Altura do TabBar (pt-3 + botão --tap-min + pb-5), sem a área segura do
+     iOS — components/ui/TabBar.tsx é fixed, e components/AuthGate.tsx usa
+     este valor pra reservar o mesmo espaço em fluxo normal, senão o
+     conteúdo da última tela ficaria escondido atrás dele. */
+  --tabbar-h: 76px;
 }
 
 /* ---- Bordas, raios, sombras ---- */
